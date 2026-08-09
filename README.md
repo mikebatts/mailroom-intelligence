@@ -2,6 +2,8 @@
 
 A working demo of AI mail triage, built for the team at Stable by [Mike Battaglia](https://mikebatts.net).
 
+![Mailroom Intelligence](docs/screenshot.png)
+
 Scanned mail goes in. A vision model extracts who sent it, who it's for, amounts, deadlines, and urgency, each with its own confidence score. A routing policy then decides: auto-action it (deposit, scan, forward, shred) or send it to a human review queue. The whole loop is measured by an eval harness, because an AI pipeline without an eval is a demo, and with one it's a system.
 
 Not affiliated with Stable. Every mail piece is synthetic, rendered from HTML.

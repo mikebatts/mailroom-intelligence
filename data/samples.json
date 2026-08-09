@@ -1,12 +1,52 @@
 [
-  { "id": "check-business", "file": "/samples/check-business.png", "label": "Business check" },
-  { "id": "check-handwritten", "file": "/samples/check-handwritten.png", "label": "Handwritten check" },
-  { "id": "irs-notice", "file": "/samples/irs-notice.png", "label": "IRS notice" },
-  { "id": "legal-service", "file": "/samples/legal-service.png", "label": "Service of process" },
-  { "id": "de-franchise", "file": "/samples/de-franchise.png", "label": "Delaware franchise tax" },
-  { "id": "invoice", "file": "/samples/invoice.png", "label": "Vendor invoice" },
-  { "id": "bank-statement", "file": "/samples/bank-statement.png", "label": "Bank statement" },
-  { "id": "utility-bill", "file": "/samples/utility-bill.png", "label": "Utility bill" },
-  { "id": "junk-credit", "file": "/samples/junk-credit.png", "label": "Credit card offer" },
-  { "id": "junk-pizza", "file": "/samples/junk-pizza.png", "label": "Pizza coupon" }
+ {
+  "id": "check-handwritten",
+  "file": "/samples/check-handwritten.png",
+  "label": "Handwritten check"
+ },
+ {
+  "id": "check-business",
+  "file": "/samples/check-business.png",
+  "label": "Business check"
+ },
+ {
+  "id": "legal-service",
+  "file": "/samples/legal-service.png",
+  "label": "Service of process"
+ },
+ {
+  "id": "irs-notice",
+  "file": "/samples/irs-notice.png",
+  "label": "IRS notice"
+ },
+ {
+  "id": "de-franchise",
+  "file": "/samples/de-franchise.png",
+  "label": "Delaware franchise tax"
+ },
+ {
+  "id": "invoice",
+  "file": "/samples/invoice.png",
+  "label": "Vendor invoice"
+ },
+ {
+  "id": "utility-bill",
+  "file": "/samples/utility-bill.png",
+  "label": "Utility bill"
+ },
+ {
+  "id": "bank-statement",
+  "file": "/samples/bank-statement.png",
+  "label": "Bank statement"
+ },
+ {
+  "id": "junk-credit",
+  "file": "/samples/junk-credit.png",
+  "label": "Credit card offer"
+ },
+ {
+  "id": "junk-pizza",
+  "file": "/samples/junk-pizza.png",
+  "label": "Pizza coupon"
+ }
 ]

@@ -1,16 +1,9 @@
 import type { NextConfig } from "next";
+import { fileURLToPath } from "node:url";
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "s3-us-west-2.amazonaws.com",
-        pathname: "/usestable.com-assets/**",
-      },
-    ],
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  turbopack: {
+    root: fileURLToPath(new URL(".", import.meta.url)),
   },
 };
 

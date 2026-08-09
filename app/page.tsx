@@ -44,6 +44,12 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [decisions, setDecisions] = useState<Record<string, "approved" | "corrected">>({});
 
+  // Deep-linkable tabs: /#eval, /#review, /#try
+  const openTab = (t: Tab) => {
+    setTab(t);
+    window.history.replaceState(null, "", t === "inbox" ? window.location.pathname : `#${t}`);
+  };
+
   useEffect(() => {
     fetch("/api/graphql", {
       method: "POST",
@@ -56,6 +62,8 @@ export default function Page() {
         setRecords(data.extractions);
         setEvalStats(data.evalStats);
         setSelected(data.samples[0]?.id ?? null);
+        const fromHash = window.location.hash.replace("#", "");
+        if (["review", "eval", "try"].includes(fromHash)) setTab(fromHash as Tab);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -95,7 +103,7 @@ export default function Page() {
             {tabs.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
+                onClick={() => openTab(t.id)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
                   tab === t.id ? "bg-white shadow-sm" : "text-secondary hover:text-dark"
                 }`}
@@ -143,7 +151,7 @@ export default function Page() {
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.file} alt={s.label} className="h-28 w-full border-b border-dark/5 object-cover object-top" />
+                    <img src={s.file} alt={s.label} className="h-28 w-full border-b border-dark/5 object-cover object-center" />
                     <div className="flex items-center justify-between px-3 py-2.5">
                       <span className="text-sm font-medium">{s.label}</span>
                       {route && (
@@ -195,7 +203,7 @@ export default function Page() {
               return (
                 <div key={s.id} className="grid gap-4 rounded-xl border border-dark/10 bg-white p-4 md:grid-cols-[200px_1fr_auto]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.file} alt={s.label} className="h-32 w-full rounded-lg border border-dark/5 object-cover object-top" />
+                  <img src={s.file} alt={s.label} className="h-32 w-full rounded-lg border border-dark/5 object-cover object-center" />
                   <div>
                     <p className="text-sm font-semibold">{s.label}</p>
                     <p className="mt-1 text-sm text-secondary">{(r.extraction as Extraction).summary}</p>
