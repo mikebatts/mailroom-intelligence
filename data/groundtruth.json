@@ -1,0 +1,92 @@
+{
+  "check-business": {
+    "docType": "check",
+    "sender": "Meridian Property Group",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 2450.0,
+    "keyDate": null,
+    "urgency": "medium",
+    "recommendedAction": "deposit"
+  },
+  "check-handwritten": {
+    "docType": "check",
+    "sender": "R. Delgado",
+    "recipient": "Cherry Street Labs",
+    "amount": 875.5,
+    "keyDate": null,
+    "urgency": "medium",
+    "recommendedAction": "deposit"
+  },
+  "irs-notice": {
+    "docType": "government_notice",
+    "sender": "Internal Revenue Service",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 1742.0,
+    "keyDate": "2026-09-15",
+    "urgency": "high",
+    "recommendedAction": "scan_and_notify"
+  },
+  "legal-service": {
+    "docType": "legal_service",
+    "sender": "Superior Court of California, County of San Francisco",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": null,
+    "keyDate": null,
+    "urgency": "high",
+    "recommendedAction": "scan_and_notify"
+  },
+  "de-franchise": {
+    "docType": "government_notice",
+    "sender": "State of Delaware, Division of Corporations",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 400.0,
+    "keyDate": "2027-03-01",
+    "urgency": "high",
+    "recommendedAction": "scan_and_notify"
+  },
+  "invoice": {
+    "docType": "invoice",
+    "sender": "Apex Printing Co.",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 1180.0,
+    "keyDate": "2026-09-03",
+    "urgency": "medium",
+    "recommendedAction": "scan_and_notify"
+  },
+  "bank-statement": {
+    "docType": "bank_statement",
+    "sender": "First National Bank",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 21621.64,
+    "keyDate": null,
+    "urgency": "low",
+    "recommendedAction": "scan_and_notify"
+  },
+  "utility-bill": {
+    "docType": "utility_bill",
+    "sender": "Con Edison",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": 342.18,
+    "keyDate": "2026-08-28",
+    "urgency": "medium",
+    "recommendedAction": "scan_and_notify"
+  },
+  "junk-credit": {
+    "docType": "marketing",
+    "sender": "Summit Card Services",
+    "recipient": "Cherry Street Labs LLC",
+    "amount": null,
+    "keyDate": null,
+    "urgency": "low",
+    "recommendedAction": "shred"
+  },
+  "junk-pizza": {
+    "docType": "marketing",
+    "sender": "Tony's Slice House",
+    "recipient": null,
+    "amount": null,
+    "keyDate": null,
+    "urgency": "low",
+    "recommendedAction": "shred"
+  }
+}

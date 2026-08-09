@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3066be;
+  --color-secondary: #606060;
+  --color-success: #85ffc7;
+  --color-danger: #e63946;
+  --color-light: #fafcff;
+  --color-dark: #080708;
+  --font-sans: var(--font-noto-sans), "Noto Sans", ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}

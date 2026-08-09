@@ -1,0 +1,742 @@
+[
+ {
+  "sampleId": "bank-statement",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "bank_statement",
+    "confidence": 0.98
+   },
+   "sender": {
+    "value": "First National Bank",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 21621.64,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2026-07-31",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.92
+   },
+   "summary": "Business checking account statement from First National Bank for July 2026 showing ending balance of $21,621.64.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.94
+  },
+  "latencyMs": 2625,
+  "inputTokens": 1224,
+  "outputTokens": 230,
+  "costUsd": 0.002374
+ },
+ {
+  "sampleId": "check-business",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "check",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Meridian Property Group",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": 2450,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": null,
+    "confidence": 0.9
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.9
+   },
+   "summary": "Check from Meridian Property Group to Cherry Street Labs LLC for $2,450.00 for aug consulting services.",
+   "recommendedAction": "deposit",
+   "overallConfidence": 0.92
+  },
+  "latencyMs": 3012,
+  "inputTokens": 1224,
+  "outputTokens": 178,
+  "costUsd": 0.002114
+ },
+ {
+  "sampleId": "check-handwritten",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "check",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "R. Delgado",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "cherry st labs",
+    "confidence": 0.9
+   },
+   "amount": {
+    "value": 875.5,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": null,
+    "confidence": 1
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.9
+   },
+   "summary": "Check for $875.50 from R. Delgado to cherry st labs for invoice 2219.",
+   "recommendedAction": "deposit",
+   "overallConfidence": 0.91
+  },
+  "latencyMs": 2105,
+  "inputTokens": 1224,
+  "outputTokens": 176,
+  "costUsd": 0.002104
+ },
+ {
+  "sampleId": "de-franchise",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "government_notice",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "State of Delaware Division of Corporations",
+    "confidence": 0.98
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.98
+   },
+   "amount": {
+    "value": 400,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2027-03-01",
+    "confidence": 0.98
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 0.95
+   },
+   "summary": "Delaware annual franchise tax of $400 minimum due March 1, 2027 or face $200 penalty plus monthly interest.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 2122,
+  "inputTokens": 1224,
+  "outputTokens": 194,
+  "costUsd": 0.002194
+ },
+ {
+  "sampleId": "invoice",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "invoice",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Apex Printing Co.",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 1180,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-09-03",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "medium",
+    "confidence": 0.85
+   },
+   "summary": "Apex Printing Co. invoice for $1,180 in letterpress business cards and branded envelopes due September 3, 2026.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.9
+  },
+  "latencyMs": 2272,
+  "inputTokens": 1224,
+  "outputTokens": 195,
+  "costUsd": 0.002199
+ },
+ {
+  "sampleId": "irs-notice",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "government_notice",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Internal Revenue Service (IRS)",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, Attn: Michael Battaglia",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": 1742,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2026-09-15",
+    "confidence": 0.95
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 0.95
+   },
+   "summary": "IRS notices unpaid Form 1120 tax balance of $1,742.00 for 2025 with penalties and interest, due by September 15, 2026.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.95
+  },
+  "latencyMs": 2661,
+  "inputTokens": 1224,
+  "outputTokens": 214,
+  "costUsd": 0.002294
+ },
+ {
+  "sampleId": "junk-credit",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "marketing",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Summit Card Services",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-08-31",
+    "confidence": 0.95
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.9
+   },
+   "summary": "Pre-screened credit card offer for Summit Platinum Business Card with 80,000 bonus points promotion requiring response by August 31, 2026.",
+   "recommendedAction": "shred",
+   "overallConfidence": 0.92
+  },
+  "latencyMs": 2558,
+  "inputTokens": 1224,
+  "outputTokens": 187,
+  "costUsd": 0.002159
+ },
+ {
+  "sampleId": "junk-pizza",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "marketing",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Tony's Slice House",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Resident at 88 Prospect Park West",
+    "confidence": 0.85
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-09-30",
+    "confidence": 0.9
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.95
+   },
+   "summary": "Tony's Slice House Park Slope location is offering promotional coupons including 2-for-1 large pies Monday-Wednesday and $5 off orders over $30, valid through September 30, 2026.",
+   "recommendedAction": "shred",
+   "overallConfidence": 0.88
+  },
+  "latencyMs": 2740,
+  "inputTokens": 1224,
+  "outputTokens": 211,
+  "costUsd": 0.002279
+ },
+ {
+  "sampleId": "legal-service",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "legal_service",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Superior Court of California, County of San Francisco",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-09-05",
+    "confidence": 0.9
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 0.95
+   },
+   "summary": "Cherry Street Labs LLC is being sued by Hartwell Logistics Inc. and must file a written response within 30 calendar days or risk default judgment.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.92
+  },
+  "latencyMs": 2813,
+  "inputTokens": 1224,
+  "outputTokens": 197,
+  "costUsd": 0.002209
+ },
+ {
+  "sampleId": "utility-bill",
+  "model": "claude-haiku-4-5",
+  "extraction": {
+   "docType": {
+    "value": "utility_bill",
+    "confidence": 0.95
+   },
+   "sender": {
+    "value": "Con Edison",
+    "confidence": 0.95
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": 342.18,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2026-08-28",
+    "confidence": 0.95
+   },
+   "urgency": {
+    "value": "medium",
+    "confidence": 0.85
+   },
+   "summary": "Con Edison energy bill for $342.18 due August 28, 2026 for the Broadway location.",
+   "recommendedAction": "forward",
+   "overallConfidence": 0.88
+  },
+  "latencyMs": 1953,
+  "inputTokens": 1224,
+  "outputTokens": 181,
+  "costUsd": 0.002129
+ },
+ {
+  "sampleId": "bank-statement",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "bank_statement",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "First National Bank",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway, 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 21621.64,
+    "confidence": 0.97
+   },
+   "keyDate": {
+    "value": "2026-07-31",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.95
+   },
+   "summary": "First National business checking statement for July 2026 showing an ending balance of $21,621.64 across 14 deposits and 31 withdrawals on account ****8829.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 4852,
+  "inputTokens": 1224,
+  "outputTokens": 226,
+  "costUsd": 0.007062
+ },
+ {
+  "sampleId": "check-business",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "check",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Meridian Property Group, 88 Prospect Park West, Brooklyn, NY 11215",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 2450,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-08-02",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.95
+   },
+   "summary": "Meridian Property Group issued check #1084 for $2,450.00 to Cherry Street Labs LLC dated 08/02/2026, memo notes August consulting.",
+   "recommendedAction": "deposit",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 4490,
+  "inputTokens": 1224,
+  "outputTokens": 207,
+  "costUsd": 0.006777
+ },
+ {
+  "sampleId": "check-handwritten",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "check",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "R. Delgado, 88 Prospect Park West, Brooklyn, NY 11215",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "cherry st labs",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": 875.5,
+    "confidence": 0.98
+   },
+   "keyDate": {
+    "value": "2026-08-01",
+    "confidence": 0.95
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.9
+   },
+   "summary": "R. Delgado wrote a check to Cherry St Labs for $875.50 (invoice 2219), dated August 1, 2026, drawn on Coastal Credit Union.",
+   "recommendedAction": "deposit",
+   "overallConfidence": 0.92
+  },
+  "latencyMs": 4421,
+  "inputTokens": 1224,
+  "outputTokens": 209,
+  "costUsd": 0.006807
+ },
+ {
+  "sampleId": "de-franchise",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "government_notice",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "State of Delaware, Division of Corporations",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 400,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2027-03-01",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 0.95
+   },
+   "summary": "Delaware is requiring Cherry Street Labs LLC to file its annual report and pay a minimum $400 franchise tax by March 1, 2027, or face a $200 penalty plus 1.5% monthly interest and loss of good standing.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 5053,
+  "inputTokens": 1224,
+  "outputTokens": 221,
+  "costUsd": 0.006987
+ },
+ {
+  "sampleId": "invoice",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "invoice",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Apex Printing Co., 1400 Industrial Ave, Long Island City, NY 11101",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway, 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 1180,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2026-09-03",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "medium",
+    "confidence": 0.85
+   },
+   "summary": "Apex Printing Co. invoiced Cherry Street Labs LLC $1,180.00 (Invoice #4471) for 2,500 letterpress business cards and 1,000 branded envelopes, due September 3, 2026.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.89
+  },
+  "latencyMs": 5296,
+  "inputTokens": 1224,
+  "outputTokens": 256,
+  "costUsd": 0.007512
+ },
+ {
+  "sampleId": "irs-notice",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "government_notice",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "IRS / Department of the Treasury",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 1742,
+    "confidence": 0.95
+   },
+   "keyDate": {
+    "value": "2026-09-15",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 0.99
+   },
+   "summary": "The IRS is demanding $1,742.00 in unpaid taxes, penalties, and interest on Cherry Street Labs LLC's 2025 Form 1120, due by September 15, 2026, with a 30-day dispute window from the August 4, 2026 notice date.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 5257,
+  "inputTokens": 1224,
+  "outputTokens": 255,
+  "costUsd": 0.007497
+ },
+ {
+  "sampleId": "junk-credit",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "marketing",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Summit Card Services, PO Box 90210, Wilmington, DE 19850",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway, 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-08-31",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.99
+   },
+   "summary": "Unsolicited pre-screened offer for the Summit Platinum Business Card with 80,000 bonus points and 0% APR for 18 months, addressed to Cherry Street Labs LLC.",
+   "recommendedAction": "shred",
+   "overallConfidence": 0.99
+  },
+  "latencyMs": 5145,
+  "inputTokens": 1224,
+  "outputTokens": 235,
+  "costUsd": 0.007197
+ },
+ {
+  "sampleId": "junk-pizza",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "marketing",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Tony's Slice House",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Resident at 88 Prospect Park West",
+    "confidence": 0.95
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-09-30",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "low",
+    "confidence": 0.99
+   },
+   "summary": "Promotional mailer from Tony's Slice House in Park Slope advertising grand re-opening deals: 2-for-1 large pies Mon–Wed and $5 off orders over $30, expiring 9/30/26.",
+   "recommendedAction": "shred",
+   "overallConfidence": 0.96
+  },
+  "latencyMs": 4831,
+  "inputTokens": 1224,
+  "outputTokens": 210,
+  "costUsd": 0.006822
+ },
+ {
+  "sampleId": "legal-service",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "legal_service",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Superior Court of California, County of San Francisco (on behalf of plaintiff Hartwell Logistics Inc.)",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway, 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": null,
+    "confidence": 1
+   },
+   "keyDate": {
+    "value": "2026-09-05",
+    "confidence": 0.82
+   },
+   "urgency": {
+    "value": "high",
+    "confidence": 1
+   },
+   "summary": "Cherry Street Labs LLC has been served with a lawsuit by Hartwell Logistics Inc. (Case No. CGC-26-618442) and must file a written response within 30 days of August 6, 2026 or risk a default judgment.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.88
+  },
+  "latencyMs": 7181,
+  "inputTokens": 1224,
+  "outputTokens": 255,
+  "costUsd": 0.007497
+ },
+ {
+  "sampleId": "utility-bill",
+  "model": "claude-sonnet-4-6",
+  "extraction": {
+   "docType": {
+    "value": "utility_bill",
+    "confidence": 0.99
+   },
+   "sender": {
+    "value": "Con Edison",
+    "confidence": 0.99
+   },
+   "recipient": {
+    "value": "Cherry Street Labs LLC, ATTN: Michael Battaglia, 447 Broadway, 2nd Fl, New York, NY 10013",
+    "confidence": 0.99
+   },
+   "amount": {
+    "value": 342.18,
+    "confidence": 0.97
+   },
+   "keyDate": {
+    "value": "2026-08-28",
+    "confidence": 0.99
+   },
+   "urgency": {
+    "value": "medium",
+    "confidence": 0.9
+   },
+   "summary": "Con Edison electricity bill for July 2026 usage of 2,140 kWh totaling $342.18 due August 28, 2026 for the 447 Broadway office.",
+   "recommendedAction": "scan_and_notify",
+   "overallConfidence": 0.93
+  },
+  "latencyMs": 4762,
+  "inputTokens": 1224,
+  "outputTokens": 227,
+  "costUsd": 0.007077
+ }
+]
