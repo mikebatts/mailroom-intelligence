@@ -1,6 +1,6 @@
 # Mailroom Intelligence
 
-A working demo of AI mail triage, built for the team at Stable by [Mike Battaglia](https://mikebatts.net).
+A working demo of AI mail triage, built for the team at Stable by [Mike Battaglia](https://mikebatts.net). **Live at [mailroom-intelligence.vercel.app](https://mailroom-intelligence.vercel.app).**
 
 ![Mailroom Intelligence](docs/screenshot.png)
 
