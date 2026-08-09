@@ -14,8 +14,8 @@ Two models, same prompt, same 10 labeled samples:
 
 | Model | Doc type | Sender | Amount | Deadline | Action | Safe routing | Auto rate | Latency | Cost/doc |
 |---|---|---|---|---|---|---|---|---|---|
-| claude-haiku-4-5 | 100% | 100% | 100% | 100% | 90% | **100%** | 50% | 2.5s | $0.0022 |
-| claude-sonnet-4-6 | 100% | 90% | 100% | 100% | 100% | **100%** | 60% | 5.1s | $0.0071 |
+| claude-haiku-4-5 | 100% | 90% | 100% | 100% | 100% | **100%** | 50% | 2.4s | $0.0019 |
+| claude-sonnet-4-6 | 100% | 100% | 100% | 100% | 100% | **100%** | 70% | 5.2s | $0.0064 |
 
 Safe routing = an item is never auto-actioned while a core field (type, amount, action) is wrong.
 

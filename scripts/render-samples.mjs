@@ -9,9 +9,9 @@ const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OUT = new URL("../public/samples/", import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
-const page = (body, extra = "") => `<!doctype html><html><head><meta charset="utf-8"><style>
+const page = (body, w = 700, h = 660, extra = "") => `<!doctype html><html><head><meta charset="utf-8"><style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Georgia, 'Times New Roman', serif; background:#e8e6e1; display:flex; align-items:center; justify-content:center; width:900px; height:700px; }
+  body { font-family: Georgia, 'Times New Roman', serif; background:#e8e6e1; display:flex; align-items:center; justify-content:center; width:${w}px; height:${h}px; }
   .paper { background:#fdfdfb; box-shadow:0 1px 6px rgba(0,0,0,.25); position:relative; }
   ${extra}
 </style></head><body>${body}</body></html>`;
@@ -39,7 +39,7 @@ const check = (name, payee, amountNum, amountWords, date, memo, font, bank, num)
     <span style="border-bottom:1px solid #333;padding:0 30px;font-family:${font};font-size:20px;">${name.split(" ")[0]} ${name.split(" ").slice(-1)}</span>
   </div>
   <div style="margin-top:18px;font-family:monospace;font-size:15px;letter-spacing:2px;">⑆021000021⑆ 4471 8829 03⑈ ${num}</div>
-</div>`);
+</div>`, 820, 380);
 
 const letter = (logo, sender, addr, title, bodyHtml, footer = "") => page(`
 <div class="paper" style="width:640px;height:640px;padding:44px 52px;font-family:'Helvetica Neue',Arial,sans-serif;">
@@ -51,7 +51,7 @@ const letter = (logo, sender, addr, title, bodyHtml, footer = "") => page(`
   <h1 style="margin-top:22px;font-size:17px;">${title}</h1>
   <div style="margin-top:12px;font-size:12.5px;line-height:1.55;color:#222;">${bodyHtml}</div>
   <div style="position:absolute;bottom:30px;left:52px;right:52px;font-size:10px;color:#777;">${footer} — ${sender}</div>
-</div>`);
+</div>`, 690, 680);
 
 const samples = {
   "check-business": check("Meridian Property Group", "Cherry Street Labs LLC", "2,450.00", "Two thousand four hundred fifty and 00/100", "08/02/2026", "Aug consulting", "Georgia", "First National Bank", "1084"),
@@ -107,7 +107,7 @@ const samples = {
     <div style="border:3px dashed #d1341f;padding:18px;flex:1;text-align:center;"><div style="font-size:34px;color:#d1341f;">\$5 OFF</div><div style="font-size:14px;margin-top:6px;">Orders over \$30</div></div>
   </div>
   <div style="margin-top:22px;font-family:Arial;font-size:13px;color:#555;">Expires 9/30/26 · 5th Ave &amp; Union St · Resident at 88 Prospect Park West</div>
-</div>`),
+</div>`, 690, 520),
 };
 
 const tmp = join(tmpdir(), "mailroom-samples");
@@ -117,10 +117,12 @@ mkdirSync(tmp, { recursive: true });
 for (const [id, html] of Object.entries(samples)) {
   const f = join(tmp, `${id}.html`);
   writeFileSync(f, html);
+  const m = html.match(/width:(\d+)px; height:(\d+)px/);
+  const [w, h] = m ? [m[1], m[2]] : [700, 660];
   execSync(
-    `"${CHROME}" --headless --disable-gpu --screenshot="${OUT}${id}.png" --window-size=900,700 --hide-scrollbars "file://${f}"`,
+    `"${CHROME}" --headless --disable-gpu --screenshot="${OUT}${id}.png" --window-size=${w},${h} --hide-scrollbars "file://${f}"`,
     { stdio: "pipe" }
   );
-  console.log("rendered", id);
+  console.log("rendered", id, `${w}x${h}`);
 }
 console.log("done:", Object.keys(samples).length, "samples ->", OUT);

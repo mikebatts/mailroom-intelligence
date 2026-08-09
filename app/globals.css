@@ -65,9 +65,10 @@ body {
 }
 
 @keyframes bar-fill {
-  from { width: 0; }
+  from { transform: scaleX(0); }
 }
 .bar-fill {
+  transform-origin: left;
   animation: bar-fill 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
@@ -114,4 +115,12 @@ body {
 }
 .filmstrip::-webkit-scrollbar {
   display: none;
+}
+
+/* mobile touch niceties */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  touch-action: manipulation;
 }

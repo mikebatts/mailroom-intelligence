@@ -111,7 +111,7 @@ export default function Stage({
         <div className="paper-card relative overflow-hidden rounded-2xl">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={label} className="max-h-[46vh] w-full object-contain sm:max-h-[420px]" />
+            <img src={image} alt={label} className="max-h-[30vh] w-full object-contain sm:max-h-[420px]" />
           ) : (
             <div className="flex h-64 items-center justify-center text-sm text-secondary">
               Pick a piece of mail below

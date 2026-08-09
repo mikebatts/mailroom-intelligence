@@ -3,30 +3,30 @@
   "model": "claude-haiku-4-5",
   "n": 10,
   "docType": 1,
-  "sender": 1,
-  "recipient": 0.9,
+  "sender": 0.9,
+  "recipient": 0.8,
   "amount": 1,
   "keyDate": 1,
-  "action": 0.9,
+  "action": 1,
   "routingSafe": 1,
   "autoRate": 0.5,
-  "meanLatencyMs": 2486,
-  "totalCostUsd": 0.022054999999999998,
-  "costPerDocUsd": 0.0022055
+  "meanLatencyMs": 2426,
+  "totalCostUsd": 0.01941,
+  "costPerDocUsd": 0.001941
  },
  {
   "model": "claude-sonnet-4-6",
   "n": 10,
   "docType": 1,
-  "sender": 0.9,
+  "sender": 1,
   "recipient": 0.9,
   "amount": 1,
   "keyDate": 1,
   "action": 1,
   "routingSafe": 1,
-  "autoRate": 0.6,
-  "meanLatencyMs": 5129,
-  "totalCostUsd": 0.071235,
-  "costPerDocUsd": 0.0071235000000000005
+  "autoRate": 0.7,
+  "meanLatencyMs": 5166,
+  "totalCostUsd": 0.0639,
+  "costPerDocUsd": 0.00639
  }
 ]

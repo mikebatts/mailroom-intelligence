@@ -1,13 +1,13 @@
 [
  {
-  "id": "check-handwritten",
-  "file": "/samples/check-handwritten.png",
-  "label": "Handwritten check"
- },
- {
   "id": "check-business",
   "file": "/samples/check-business.png",
   "label": "Business check"
+ },
+ {
+  "id": "check-handwritten",
+  "file": "/samples/check-handwritten.png",
+  "label": "Handwritten check"
  },
  {
   "id": "legal-service",

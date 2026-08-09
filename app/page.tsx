@@ -58,6 +58,7 @@ export default function Page() {
   const [dragging, setDragging] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const byId = useMemo(() => {
     const m = new Map<string, ExtractionRecord>();
@@ -77,6 +78,9 @@ export default function Page() {
     setLiveError(null);
     setSelected(id);
     setPhase("scan");
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     timers.current.push(setTimeout(() => setPhase("extract"), 1150));
     timers.current.push(setTimeout(() => setPhase("route"), 2050));
     timers.current.push(setTimeout(() => setPhase("done"), 2600));
@@ -109,6 +113,9 @@ export default function Page() {
     setSelected(null);
     setLivePreview(URL.createObjectURL(file));
     setPhase("scan");
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     const started = Date.now();
     try {
       const form = new FormData();
@@ -199,14 +206,14 @@ export default function Page() {
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6">
         {/* hero: the stage */}
-        <section className="pb-2 pt-8 sm:pt-12">
-          <h1 className="text-balance text-2xl font-bold tracking-tight sm:text-[28px]">
+        <section className="pb-2 pt-5 sm:pt-12">
+          <h1 className="text-balance text-xl font-bold tracking-tight sm:text-[28px]">
             Mail goes in. <span className="text-primary">Decisions come out.</span>
           </h1>
-          <p className="mt-1.5 text-sm text-secondary sm:text-[15px]">
+          <p className="mt-1.5 text-[13px] text-secondary sm:text-[15px]">
             AI triage for physical mail: reads every piece, routes the confident calls, flags the rest for a human.
           </p>
-          <div className="mt-7">
+          <div ref={stageRef} className="mt-5 scroll-mt-16 sm:mt-7">
             <Stage
               image={stageImage}
               label={stageLabel}
@@ -245,7 +252,7 @@ export default function Page() {
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.file} alt={s.label} className="h-full w-full object-cover object-center" />
+                  <img src={s.file} alt={s.label} loading="lazy" className="h-full w-full object-cover object-center" />
                   {route === "review" && (
                     <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-500" title="needs review" />
                   )}
@@ -281,7 +288,7 @@ export default function Page() {
               return (
                 <div key={s.id} className="tray-in paper-card flex gap-3.5 rounded-2xl p-3.5" style={{ animationDelay: `${i * 70}ms` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.file} alt={s.label} className="h-20 w-24 shrink-0 rounded-lg border border-ink/5 object-cover object-center" />
+                  <img src={s.file} alt={s.label} loading="lazy" className="h-20 w-24 shrink-0 rounded-lg border border-ink/5 object-cover object-center" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="truncate text-sm font-semibold">{s.label}</p>
@@ -330,8 +337,8 @@ export default function Page() {
           <div className="mb-6 grid grid-cols-3 gap-3">
             {[
               { big: haiku ? pct(haiku.routingSafe) : "—", small: "safe routing" },
-              { big: haiku ? `$${haiku.costPerDocUsd.toFixed(3)}` : "—", small: "per document" },
-              { big: haiku ? `${(haiku.meanLatencyMs / 1000).toFixed(1)}s` : "—", small: "per extraction" },
+              { big: haiku ? `$${haiku.costPerDocUsd.toFixed(3)}` : "—", small: "per doc" },
+              { big: haiku ? `${(haiku.meanLatencyMs / 1000).toFixed(1)}s` : "—", small: "latency" },
             ].map((s) => (
               <div key={s.small} className="paper-card rounded-2xl px-3 py-4 text-center sm:py-5">
                 <p className="font-mono text-xl font-semibold text-primary sm:text-3xl">{s.big}</p>
