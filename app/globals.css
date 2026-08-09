@@ -2,15 +2,116 @@
 
 @theme {
   --color-primary: #3066be;
+  --color-primary-deep: #234b8f;
   --color-secondary: #606060;
   --color-success: #85ffc7;
   --color-danger: #e63946;
   --color-light: #fafcff;
   --color-dark: #080708;
-  --font-sans: var(--font-noto-sans), "Noto Sans", ui-sans-serif, system-ui,
-    sans-serif;
+  --color-paper: #f6f4ee;
+  --color-ink: #1c1b1a;
+  --font-sans: var(--font-noto-sans), "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
 }
 
 body {
   font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  background-image: radial-gradient(rgba(48, 102, 190, 0.05) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ---- processing stage animations ---- */
+
+@keyframes scan-sweep {
+  0% { top: -8%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: 104%; opacity: 0; }
+}
+.scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 34px;
+  background: linear-gradient(
+    to bottom,
+    rgba(48, 102, 190, 0),
+    rgba(48, 102, 190, 0.28) 45%,
+    rgba(48, 102, 190, 0.55) 50%,
+    rgba(48, 102, 190, 0.28) 55%,
+    rgba(48, 102, 190, 0)
+  );
+  animation: scan-sweep 1.15s cubic-bezier(0.45, 0, 0.55, 1) both;
+  pointer-events: none;
+}
+.scan-beam::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: rgba(48, 102, 190, 0.9);
+  box-shadow: 0 0 12px 2px rgba(48, 102, 190, 0.7);
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.row-in {
+  animation: row-in 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes bar-fill {
+  from { width: 0; }
+}
+.bar-fill {
+  animation: bar-fill 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes stamp-in {
+  0% { opacity: 0; transform: scale(2.1) rotate(-14deg); }
+  55% { opacity: 1; transform: scale(0.94) rotate(-7deg); }
+  75% { transform: scale(1.04) rotate(-8.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-8deg); }
+}
+.stamp-in {
+  animation: stamp-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@keyframes blink-caret {
+  50% { opacity: 0; }
+}
+.processing-caret::after {
+  content: "▌";
+  animation: blink-caret 0.7s steps(1) infinite;
+  color: var(--color-primary);
+}
+
+@keyframes tray-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tray-in {
+  animation: tray-in 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* paper card with a soft real-world shadow */
+.paper-card {
+  background: #fff;
+  border: 1px solid rgba(8, 7, 8, 0.09);
+  box-shadow:
+    0 1px 2px rgba(8, 7, 8, 0.05),
+    0 8px 24px -12px rgba(8, 7, 8, 0.18);
+}
+
+/* filmstrip scroll: hide bar, keep momentum */
+.filmstrip {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.filmstrip::-webkit-scrollbar {
+  display: none;
 }
