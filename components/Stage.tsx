@@ -59,7 +59,7 @@ function ReadoutRow({
     >
       <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-secondary">{label}</span>
       <span className="flex min-w-0 items-baseline gap-2.5">
-        <span className={`truncate text-right font-mono text-[13px] font-medium sm:text-sm ${tone ?? ""}`}>
+        <span className={`min-w-0 truncate text-right font-mono text-[13px] font-medium sm:text-sm ${tone ?? ""}`}>
           {value}
         </span>
         {confidence !== undefined && <Bar value={confidence} delay={delay + 150} />}
@@ -107,7 +107,7 @@ export default function Stage({
   return (
     <div className="grid gap-5 md:grid-cols-[1.15fr_1fr] md:gap-8">
       {/* the piece of mail */}
-      <div className="relative">
+      <div className="relative min-w-0">
         <div className="paper-card relative overflow-hidden rounded-2xl">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -120,7 +120,7 @@ export default function Stage({
           {phase === "scan" && <div className="scan-beam" />}
           {showStamp && route && (
             <div
-              className={`stamp-in absolute right-3 top-3 rounded-lg border-[3px] px-3 py-1.5 font-mono text-xs font-semibold uppercase tracking-widest sm:right-5 sm:top-5 sm:text-sm ${
+              className={`stamp-in absolute right-2.5 top-2.5 rounded-md border-2 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-widest sm:right-5 sm:top-5 sm:rounded-lg sm:border-[3px] sm:px-3 sm:py-1.5 sm:text-sm ${
                 route.route === "auto"
                   ? "border-primary/80 bg-light/85 text-primary"
                   : "border-amber-500/80 bg-light/85 text-amber-600"
@@ -137,7 +137,7 @@ export default function Stage({
       </div>
 
       {/* the machine readout */}
-      <div className="flex flex-col justify-center">
+      <div className="flex min-w-0 flex-col justify-center">
         {/* step lights */}
         <div className="mb-4 flex items-center gap-2" aria-label="Pipeline progress">
           {steps.map((s, i) => {

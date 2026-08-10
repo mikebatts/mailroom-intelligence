@@ -199,6 +199,7 @@ export default function Page() {
               {reviewItems.length > 0 && <span className="ml-1 text-amber-600">{reviewItems.length}</span>}
             </a>
             <a href="#eval" className="transition-colors hover:text-primary">Eval</a>
+            <a href="/api/graphql" target="_blank" className="transition-colors hover:text-primary">API</a>
             <a href="https://github.com/mikebatts/mailroom-intelligence" target="_blank" rel="noreferrer" className="hidden transition-colors hover:text-primary sm:inline">Code</a>
           </nav>
         </div>
@@ -229,7 +230,7 @@ export default function Page() {
         </section>
 
         {/* filmstrip */}
-        <section className="pb-12 pt-6">
+        <section className="pb-9 pt-5 sm:pb-12 sm:pt-6">
           <div className="filmstrip -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
             <button
               onClick={() => inputRef.current?.click()}
@@ -273,7 +274,7 @@ export default function Page() {
         </section>
 
         {/* review queue */}
-        <section id="review" className="scroll-mt-16 border-t border-ink/10 py-12">
+        <section id="review" className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
           <div className="mb-5 flex items-baseline justify-between">
             <h2 className="text-lg font-bold tracking-tight">Review queue</h2>
             <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
@@ -326,7 +327,7 @@ export default function Page() {
         </section>
 
         {/* eval */}
-        <section id="eval" className="scroll-mt-16 border-t border-ink/10 py-12">
+        <section id="eval" className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
           <div className="mb-5 flex items-baseline justify-between">
             <h2 className="text-lg font-bold tracking-tight">The eval</h2>
             <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
