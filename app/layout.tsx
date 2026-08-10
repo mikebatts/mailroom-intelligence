@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Noto_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${notoSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col text-ink">
         {children}
+        <Analytics />
       </body>
     </html>
   );
