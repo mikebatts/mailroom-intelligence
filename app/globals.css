@@ -1,46 +1,179 @@
 @import "tailwindcss";
 
-@theme {
-  --color-primary: #3066be;
-  --color-primary-deep: #234b8f;
-  --color-secondary: #606060;
-  --color-success: #85ffc7;
-  --color-danger: #e63946;
-  --color-light: #fafcff;
-  --color-dark: #080708;
-  --color-paper: #f6f4ee;
-  --color-ink: #1c1b1a;
-  --font-sans: var(--font-noto-sans), "Noto Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+/* ─── DESIGN TOKENS ─────────────────────────────────────────── */
+:root {
+  --desk:        #0f1117;
+  --desk-2:      #171a22;
+  --paper:       #f4efe4;
+  --manila:      #e6d5ac;
+  --ink:         #1a1c22;
+  --postal-red:  #d6382c;
+  --postal-blue: #2447c9;
+  --stamp-green: #1e6f47;
+  --readout:     #9aa3b2;
+  --readout-hot: #e8ecf4;
 }
+
+/* ─── TAILWIND THEME MAP ─────────────────────────────────────── */
+@theme {
+  --color-desk:        var(--desk);
+  --color-desk-2:      var(--desk-2);
+  --color-paper:       var(--paper);
+  --color-manila:      var(--manila);
+  --color-ink:         var(--ink);
+  --color-postal-red:  var(--postal-red);
+  --color-postal-blue: var(--postal-blue);
+  --color-stamp-green: var(--stamp-green);
+  --color-readout:     var(--readout);
+  --color-readout-hot: var(--readout-hot);
+
+  /* legacy aliases kept for compat */
+  --color-primary:      var(--postal-blue);
+  --color-primary-deep: #1a37a8;
+  --color-secondary:    var(--readout);
+  --color-success:      var(--stamp-green);
+  --color-danger:       var(--postal-red);
+  --color-light:        var(--paper);
+  --color-dark:         var(--desk);
+
+  --font-display: var(--font-archivo-black), "Archivo Black", sans-serif;
+  --font-sans:    var(--font-archivo), "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* ─── BASE ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { overflow-x: hidden; }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-paper);
-  background-image: radial-gradient(rgba(48, 102, 190, 0.05) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-color: var(--desk);
+  color: var(--readout);
+  overflow-x: hidden;
+  /* film-grain overlay on desk bg */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-/* ---- processing stage animations ---- */
+/* ─── SIGNATURE MOTIFS ───────────────────────────────────────── */
+
+/* 1. AIRMAIL STRIPE — thin diagonal red/blue border */
+.airmail-stripe {
+  height: 7px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--postal-red)  0px,
+    var(--postal-red)  10px,
+    var(--paper)       10px,
+    var(--paper)       14px,
+    var(--postal-blue) 14px,
+    var(--postal-blue) 24px,
+    var(--paper)       24px,
+    var(--paper)       28px
+  );
+}
+
+/* 2. PERFORATED EDGE — punch-out dots at top of paper cards */
+.perforated-top {
+  position: relative;
+}
+.perforated-top::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: radial-gradient(
+    circle at center,
+    var(--desk) 4px,
+    transparent 4px
+  ) repeat-x top / 18px 10px;
+  z-index: 1;
+}
+
+/* perforated top on paper-colored surfaces (desk is punched through) */
+.perforated-top-paper::before {
+  background: radial-gradient(
+    circle at center,
+    var(--desk) 4px,
+    transparent 4px
+  ) repeat-x top / 18px 10px;
+}
+
+/* 3. RUBBER STAMPS */
+.stamp {
+  display: inline-block;
+  font-family: var(--font-display), "Archivo Black", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-width: 2.5px;
+  border-style: double;
+  line-height: 1.3;
+  filter: blur(0.25px);
+  opacity: 0.92;
+}
+.stamp-auto   { color: var(--stamp-green); border-color: var(--stamp-green); transform: rotate(-2deg); }
+.stamp-review { color: var(--postal-red);  border-color: var(--postal-red);  transform: rotate(1.5deg); }
+.stamp-corrected { color: var(--postal-red); border-color: var(--postal-red); transform: rotate(-3deg); }
+
+/* 4. POSTMARK SVG ICON — used inline via SVG component */
+
+/* 5. FRANKING RECEIPT */
+.receipt-strip {
+  background: var(--paper);
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+.receipt-tearline {
+  border-top: 2px dashed rgba(26,28,34,0.25);
+  margin: 0.5rem 0;
+}
+
+/* ─── PAPER CARD ─────────────────────────────────────────────── */
+.paper-card {
+  background: var(--paper);
+  color: var(--ink);
+  /* subtle paper-fiber texture */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.06'/%3E%3C/svg%3E");
+  border: 1px solid rgba(26,28,34,0.10);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 8px 28px -10px rgba(0,0,0,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+/* angled hero doc */
+.hero-doc {
+  transform: rotate(-1.2deg);
+  transform-origin: center center;
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.18),
+    0 16px 48px -8px rgba(0,0,0,0.5);
+}
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────── */
 
 @keyframes scan-sweep {
-  0% { top: -8%; opacity: 0; }
-  8% { opacity: 1; }
-  92% { opacity: 1; }
+  0%   { top: -8%; opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
   100% { top: 104%; opacity: 0; }
 }
 .scan-beam {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 0; right: 0;
   height: 34px;
   background: linear-gradient(
     to bottom,
-    rgba(48, 102, 190, 0),
-    rgba(48, 102, 190, 0.28) 45%,
-    rgba(48, 102, 190, 0.55) 50%,
-    rgba(48, 102, 190, 0.28) 55%,
-    rgba(48, 102, 190, 0)
+    rgba(36,71,201,0),
+    rgba(36,71,201,0.30) 45%,
+    rgba(36,71,201,0.58) 50%,
+    rgba(36,71,201,0.30) 55%,
+    rgba(36,71,201,0)
   );
   animation: scan-sweep 1.15s cubic-bezier(0.45, 0, 0.55, 1) both;
   pointer-events: none;
@@ -49,16 +182,15 @@ body {
   content: "";
   position: absolute;
   top: 50%;
-  left: 0;
-  right: 0;
+  left: 0; right: 0;
   height: 1.5px;
-  background: rgba(48, 102, 190, 0.9);
-  box-shadow: 0 0 12px 2px rgba(48, 102, 190, 0.7);
+  background: rgba(36,71,201,0.9);
+  box-shadow: 0 0 12px 2px rgba(36,71,201,0.7);
 }
 
 @keyframes row-in {
   from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .row-in {
   animation: row-in 0.32s cubic-bezier(0.2, 0.8, 0.3, 1) both;
@@ -72,15 +204,19 @@ body {
   animation: bar-fill 0.55s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
-@keyframes stamp-in {
-  0% { opacity: 0; transform: scale(2.1) rotate(-14deg); }
-  55% { opacity: 1; transform: scale(0.94) rotate(-7deg); }
-  75% { transform: scale(1.04) rotate(-8.5deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-8deg); }
+/* stamp slam: scale 1.4 → 1, cubic-bezier overshoot */
+@keyframes stamp-slam {
+  0%   { opacity: 0; transform: scale(1.4) rotate(var(--stamp-rot, -2deg)); }
+  40%  { opacity: 1; }
+  70%  { transform: scale(0.96) rotate(var(--stamp-rot, -2deg)); }
+  100% { opacity: 0.92; transform: scale(1) rotate(var(--stamp-rot, -2deg)); }
 }
 .stamp-in {
-  animation: stamp-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  animation: stamp-slam 0.42s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
+.stamp-auto     { --stamp-rot: -2deg; }
+.stamp-review   { --stamp-rot: 1.5deg; }
+.stamp-corrected{ --stamp-rot: -3deg; }
 
 @keyframes blink-caret {
   50% { opacity: 0; }
@@ -88,57 +224,75 @@ body {
 .processing-caret::after {
   content: "▌";
   animation: blink-caret 0.7s steps(1) infinite;
-  color: var(--color-primary);
+  color: var(--postal-blue);
 }
 
 @keyframes tray-in {
   from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .tray-in {
   animation: tray-in 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
-/* paper card with a soft real-world shadow */
-.paper-card {
-  background: #fff;
-  border: 1px solid rgba(8, 7, 8, 0.09);
-  box-shadow:
-    0 1px 2px rgba(8, 7, 8, 0.05),
-    0 8px 24px -12px rgba(8, 7, 8, 0.18);
-}
-
-/* filmstrip scroll: hide bar, keep momentum */
-.filmstrip {
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-.filmstrip::-webkit-scrollbar {
-  display: none;
-}
-
-/* delta reveal animation for correction loop */
 @keyframes delta-in {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .delta-in {
   animation: delta-in 0.38s cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
-/* corrected field stamp pulse */
+/* receipt height-reveal */
+@keyframes receipt-reveal {
+  from { max-height: 0; opacity: 0; }
+  to   { max-height: 600px; opacity: 1; }
+}
+.receipt-reveal {
+  overflow: hidden;
+  animation: receipt-reveal 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
 @keyframes corrected-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50%       { opacity: 0.7; }
 }
 .corrected-pulse {
   animation: corrected-pulse 1.8s ease-in-out 3;
 }
 
-/* mobile touch niceties */
-* {
-  -webkit-tap-highlight-color: transparent;
+/* ─── FILMSTRIP ──────────────────────────────────────────────── */
+.filmstrip {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
 }
-button {
-  touch-action: manipulation;
+.filmstrip::-webkit-scrollbar { display: none; }
+.filmstrip-card {
+  scroll-snap-align: start;
 }
+
+/* ─── SECTION DIVIDER ────────────────────────────────────────── */
+.section-divider {
+  display: grid;
+  grid-template-rows: 7px 1fr;
+}
+.section-divider > .airmail-stripe { margin-bottom: 0; }
+
+/* ─── REDUCED MOTION ─────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .scan-beam,
+  .stamp-in,
+  .row-in,
+  .bar-fill,
+  .tray-in,
+  .delta-in,
+  .receipt-reveal,
+  .corrected-pulse {
+    animation: none !important;
+  }
+}
+
+/* ─── MOBILE TOUCH ───────────────────────────────────────────── */
+* { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }

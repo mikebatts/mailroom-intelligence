@@ -42,7 +42,6 @@ interface ModelStats {
   costPerDocUsd: number;
 }
 
-// A single field correction the reviewer made.
 interface FieldCorrection {
   field: string;
   label: string;
@@ -50,7 +49,6 @@ interface FieldCorrection {
   after: string;
 }
 
-// Per-doc delta returned by /api/reextract.
 interface DeltaResult {
   sampleId: string;
   before: { overallConfidence: number; recommendedAction: string };
@@ -66,15 +64,62 @@ interface DeltaResult {
 const MODEL = "claude-haiku-4-5";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-// Editable fields shown in the correction tray.
 const EDITABLE_FIELDS: { key: keyof Extraction; label: string; format: (e: Extraction) => string }[] = [
-  { key: "sender", label: "from", format: (e) => e.sender.value ?? "—" },
-  { key: "recipient", label: "to", format: (e) => e.recipient.value ?? "—" },
-  { key: "docType", label: "type", format: (e) => e.docType.value ?? "—" },
-  { key: "amount", label: "amount", format: (e) => e.amount.value !== null ? `$${e.amount.value.toFixed(2)}` : "—" },
-  { key: "keyDate", label: "due", format: (e) => e.keyDate.value ?? "—" },
-  { key: "urgency", label: "urgency", format: (e) => e.urgency.value ?? "—" },
+  { key: "sender",    label: "from",    format: (e) => e.sender.value ?? "—" },
+  { key: "recipient", label: "to",      format: (e) => e.recipient.value ?? "—" },
+  { key: "docType",   label: "type",    format: (e) => e.docType.value ?? "—" },
+  { key: "amount",    label: "amount",  format: (e) => e.amount.value !== null ? `$${e.amount.value.toFixed(2)}` : "—" },
+  { key: "keyDate",   label: "due",     format: (e) => e.keyDate.value ?? "—" },
+  { key: "urgency",   label: "urgency", format: (e) => e.urgency.value ?? "—" },
 ];
+
+/* ── Postmark SVG (inline, reusable) ─────────────────────────── */
+function Postmark({ size = 48, className = "" }: { size?: number; className?: string }) {
+  const r = size / 2;
+  const outerR = r - 2;
+  const innerR = r - 6;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden className={className} style={{ opacity: 0.5 }}>
+      <circle cx={r} cy={r} r={outerR} fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx={r} cy={r} r={innerR - 1} fill="none" stroke="currentColor" strokeWidth="1" />
+      <line x1={r - 5} y1={r} x2={r + 5} y2={r} stroke="currentColor" strokeWidth="1" />
+      <line x1={r} y1={r - 5} x2={r} y2={r + 5} stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+/* ── Section divider with airmail stripe ─────────────────────── */
+function AirmailDivider() {
+  return <div className="airmail-stripe w-full" aria-hidden />;
+}
+
+/* ── Scoreboard number ───────────────────────────────────────── */
+function ScoreNum({ big, label, accent }: { big: string; label: string; accent?: boolean }) {
+  return (
+    <div
+      className="rounded-lg p-4 text-center sm:p-6"
+      style={{ background: "var(--desk-2)", border: "1px solid rgba(154,163,178,0.07)" }}
+    >
+      <p
+        className="font-mono leading-none"
+        style={{
+          fontSize: "clamp(1.8rem, 7vw, 3.2rem)",
+          fontWeight: 700,
+          color: accent ? "var(--postal-blue)" : "var(--readout-hot)",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {big}
+      </p>
+      <p
+        className="mt-2 font-mono text-[8px] uppercase tracking-widest"
+        style={{ color: "var(--readout)" }}
+      >
+        {label}
+      </p>
+    </div>
+  );
+}
 
 export default function Page() {
   const [samples, setSamples] = useState<MailSample[]>([]);
@@ -88,7 +133,6 @@ export default function Page() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  // Correction loop state
   const [corrections, setCorrections] = useState<Record<string, FieldCorrection[]>>({});
   const [editingField, setEditingField] = useState<{ sampleId: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -96,6 +140,8 @@ export default function Page() {
   const [rerunResults, setRerunResults] = useState<DeltaResult[] | null>(null);
   const [rerunFromCache, setRerunFromCache] = useState(false);
   const deltaRef = useRef<HTMLDivElement>(null);
+  // stable receipt ID — lazy initializer runs once, avoids impure-in-render lint error
+  const [receiptId] = useState<string>(() => Math.random().toString(36).slice(2, 8).toUpperCase());
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -107,10 +153,7 @@ export default function Page() {
     return m;
   }, [records]);
 
-  const clearTimers = () => {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-  };
+  const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
 
   const play = useCallback((id: string) => {
     clearTimers();
@@ -123,8 +166,8 @@ export default function Page() {
       stageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
     timers.current.push(setTimeout(() => setPhase("extract"), 1150));
-    timers.current.push(setTimeout(() => setPhase("route"), 2050));
-    timers.current.push(setTimeout(() => setPhase("done"), 2600));
+    timers.current.push(setTimeout(() => setPhase("route"),   2050));
+    timers.current.push(setTimeout(() => setPhase("done"),    2600));
   }, []);
 
   useEffect(() => {
@@ -139,10 +182,7 @@ export default function Page() {
         setRecords(data.extractions);
         setEvalStats(data.evalStats);
         const first = data.samples[0]?.id;
-        if (first) {
-          // let the page paint, then run the show
-          timers.current.push(setTimeout(() => play(first), 450));
-        }
+        if (first) timers.current.push(setTimeout(() => play(first), 450));
       });
     return clearTimers;
   }, [play]);
@@ -170,7 +210,7 @@ export default function Page() {
           setLiveResult(data);
           setPhase("extract");
           timers.current.push(setTimeout(() => setPhase("route"), 900));
-          timers.current.push(setTimeout(() => setPhase("done"), 1450));
+          timers.current.push(setTimeout(() => setPhase("done"),  1450));
         }, wait)
       );
     } catch (err) {
@@ -192,18 +232,10 @@ export default function Page() {
     const label = EDITABLE_FIELDS.find((f) => f.key === field)?.label ?? field;
     setCorrections((prev) => {
       const existing = (prev[sampleId] ?? []).filter((c) => c.field !== field);
-      return {
-        ...prev,
-        [sampleId]: [
-          ...existing,
-          { field, label, before: originalValue, after: editValue.trim() },
-        ],
-      };
+      return { ...prev, [sampleId]: [...existing, { field, label, before: originalValue, after: editValue.trim() }] };
     });
     setEditingField(null);
-    // If a correction is made, mark the tray item as corrected.
     setDecisions((d) => ({ ...d, [sampleId]: "corrected" }));
-    // Clear prior rerun results so the button is re-enabled.
     setRerunResults(null);
   }
 
@@ -213,22 +245,12 @@ export default function Page() {
     setRerunLoading(true);
     setRerunResults(null);
     try {
-      // Build exemplars from all corrections.
       const exemplars = Object.entries(corrections).flatMap(([sampleId, corrs]) => {
         const sample = samples.find((s) => s.id === sampleId);
-        return corrs.map((c) => ({
-          sampleLabel: sample?.label ?? sampleId,
-          field: c.field,
-          before: c.before,
-          after: c.after,
-        }));
+        return corrs.map((c) => ({ sampleLabel: sample?.label ?? sampleId, field: c.field, before: c.before, after: c.after }));
       });
-      // Re-run on the review items that were not the ones being corrected.
       const correctedIds = new Set(Object.keys(corrections));
-      const rerunIds = reviewItems
-        .map((s) => s.id)
-        .filter((id) => !correctedIds.has(id));
-
+      const rerunIds = reviewItems.map((s) => s.id).filter((id) => !correctedIds.has(id));
       const res = await fetch("/api/reextract", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -238,7 +260,6 @@ export default function Page() {
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setRerunResults(data.results);
       setRerunFromCache(!!data.fromCache);
-      // Scroll to delta panel.
       setTimeout(() => deltaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch (err) {
       setLiveError((err as Error).message);
@@ -265,12 +286,9 @@ export default function Page() {
 
   const haiku = evalStats.find((s) => s.model === MODEL);
 
-  // Compute updated stats after re-run.
   const afterAutoRate = useMemo(() => {
     if (!rerunResults || !haiku) return null;
-    // Start from original auto-routed count.
     const originalAutoCount = Math.round(haiku.autoRate * haiku.n);
-    // Count docs that moved review → auto after re-extraction.
     const reviewIds = new Set(reviewItems.map((s) => s.id));
     let delta = 0;
     for (const r of rerunResults) {
@@ -284,13 +302,9 @@ export default function Page() {
   return (
     <div
       className="flex min-h-screen flex-col"
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={(e) => {
-        if (e.relatedTarget === null) setDragging(false);
-      }}
+      style={{ background: "var(--desk)" }}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={(e) => { if (e.relatedTarget === null) setDragging(false); }}
       onDrop={(e) => {
         e.preventDefault();
         setDragging(false);
@@ -298,152 +312,323 @@ export default function Page() {
         if (f && f.type.startsWith("image/")) handleUpload(f);
       }}
     >
-      {/* drop overlay */}
+      {/* DROP OVERLAY */}
       {dragging && (
-        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-primary/10 backdrop-blur-[2px]">
-          <div className="rounded-2xl border-2 border-dashed border-primary bg-light px-8 py-6 text-center">
-            <p className="text-lg font-semibold text-primary">Drop it in the mailroom</p>
-            <p className="mt-1 text-sm text-secondary">PNG or JPEG, we&apos;ll take it from here</p>
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(15,17,23,0.85)" }}>
+          <div
+            className="rounded-xl border-2 border-dashed px-8 py-6 text-center"
+            style={{ borderColor: "var(--postal-blue)", background: "var(--desk-2)" }}
+          >
+            <p
+              className="font-mono text-[13px] uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-display)", color: "var(--readout-hot)" }}
+            >
+              drop it in the mailroom
+            </p>
+            <p className="mt-1 font-mono text-[10px]" style={{ color: "var(--readout)" }}>
+              png or jpeg · we&apos;ll take it from here
+            </p>
           </div>
         </div>
       )}
 
-      <header className="sticky top-0 z-40 border-b border-ink/10 bg-paper/90 backdrop-blur">
+      {/* ── AIRMAIL STRIPE — very top ─────────────────────────── */}
+      <AirmailDivider />
+
+      {/* ── HEADER ───────────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-40 backdrop-blur"
+        style={{ background: "rgba(15,17,23,0.92)", borderBottom: "1px solid rgba(154,163,178,0.1)" }}
+      >
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <svg viewBox="0 0 64 64" className="h-7 w-7" aria-hidden>
-              <rect width="64" height="64" rx="14" fill="#3066BE" />
-              <path d="M14 22l18 13 18-13" fill="none" stroke="#FAFCFF" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-              <rect x="14" y="20" width="36" height="26" rx="4" fill="none" stroke="#FAFCFF" strokeWidth="5" />
-            </svg>
-            <span className="text-[15px] font-bold tracking-tight">Mailroom Intelligence</span>
+            {/* Postmark-style icon */}
+            <Postmark size={28} className="text-readout" />
+            <span
+              className="text-[14px] uppercase tracking-widest"
+              style={{ fontFamily: "var(--font-display)", color: "var(--readout-hot)", letterSpacing: "0.1em" }}
+            >
+              Mailroom Intelligence
+            </span>
           </div>
-          <nav className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-secondary">
-            <a href="#review" className="transition-colors hover:text-primary">
-              Review<span className="hidden sm:inline"> queue</span>
-              {reviewItems.length > 0 && <span className="ml-1 text-amber-600">{reviewItems.length}</span>}
+          {/* Step rail — desktop only in header */}
+          <div className="hidden sm:flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest" style={{ color: "var(--readout)" }}>
+            {(["scan", "extract", "route", "learn"] as const).map((step, i) => (
+              <span key={step} className="flex items-center gap-2">
+                {i > 0 && <span aria-hidden style={{ color: "rgba(154,163,178,0.25)" }}>→</span>}
+                <span style={{ color: step === phase || (step === "learn" && phase === "done") ? "var(--readout-hot)" : "rgba(154,163,178,0.4)" }}>
+                  {step}
+                </span>
+              </span>
+            ))}
+          </div>
+          <nav className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--readout)" }}>
+            <a href="#review" className="transition-opacity hover:opacity-100 opacity-70">
+              review{reviewItems.length > 0 && <span className="ml-1" style={{ color: "var(--postal-red)" }}>{reviewItems.length}</span>}
             </a>
-            <a href="#eval" className="transition-colors hover:text-primary">Eval</a>
-            <a href="/api/graphql" target="_blank" className="transition-colors hover:text-primary">API</a>
-            <a href="https://github.com/mikebatts/mailroom-intelligence" target="_blank" rel="noreferrer" className="hidden transition-colors hover:text-primary sm:inline">Code</a>
+            <a href="#eval" className="transition-opacity hover:opacity-100 opacity-70">eval</a>
+            <a href="https://github.com/mikebatts/mailroom-intelligence" target="_blank" rel="noreferrer" className="hidden transition-opacity hover:opacity-100 opacity-70 sm:inline">code</a>
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6">
-        {/* hero: the stage */}
-        <section className="pb-2 pt-5 sm:pt-12">
-          <h1 className="text-balance text-xl font-bold tracking-tight sm:text-[28px]">
-            Mail goes in. <span className="text-primary">Decisions come out.</span>
+      {/* ═══════════════════════════════════════════════════════
+          ACT 1 — HERO
+      ═══════════════════════════════════════════════════════ */}
+      <section className="mx-auto w-full max-w-5xl px-4 pb-8 pt-10 sm:px-6 sm:pt-16">
+        {/* Big type block */}
+        <div className="mb-8 sm:mb-12">
+          <h1
+            className="leading-none tracking-tight uppercase"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2.6rem, 11vw, 5.5rem)",
+              color: "var(--paper)",
+            }}
+          >
+            mail goes in.
           </h1>
-          <p className="mt-1.5 text-[13px] text-secondary sm:text-[15px]">
-            AI triage for physical mail: reads every piece, routes the confident calls, flags the rest for a human.
+          <h1
+            className="leading-none tracking-tight uppercase"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(2.6rem, 11vw, 5.5rem)",
+              color: "var(--postal-red)",
+            }}
+          >
+            decisions come out.
+          </h1>
+          <p
+            className="mt-4 font-mono text-[12px] sm:text-[13px] leading-relaxed max-w-lg"
+            style={{ color: "var(--readout)" }}
+          >
+            ai triage for physical mail: reads every piece, routes the confident calls, flags the rest for a human.
           </p>
+        </div>
 
-          {/* pipeline steps narrative */}
-          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-widest text-secondary sm:mt-5">
+        {/* Pipeline step rail — mobile collapsible chip, desktop deferred to sticky header */}
+        <div className="mb-6 sm:hidden">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-[9px] uppercase tracking-widest"
+            style={{ background: "var(--desk-2)", border: "1px solid rgba(154,163,178,0.12)", color: "var(--readout)" }}
+          >
             {(["scan", "extract", "route", "learn"] as const).map((step, i) => (
-              <span key={step} className="flex items-center gap-2">
-                {i > 0 && <span className="text-ink/20">→</span>}
-                <span className={step === "learn" ? "text-primary font-semibold" : ""}>{step}</span>
+              <span key={step} className="flex items-center gap-1.5">
+                {i > 0 && <span aria-hidden style={{ color: "rgba(154,163,178,0.3)" }}>→</span>}
+                <span style={{ color: step === phase || (step === "learn" && phase === "done") ? "var(--readout-hot)" : "rgba(154,163,178,0.4)" }}>
+                  {step}
+                </span>
               </span>
             ))}
           </div>
+        </div>
 
-          <div ref={stageRef} className="mt-5 scroll-mt-16 sm:mt-7">
-            <Stage
-              image={stageImage}
-              label={stageLabel}
-              extraction={stageExtraction}
-              phase={phase}
-              meta={stageMeta}
-              live={!!liveResult}
-            />
-            {liveError && (
-              <p className="mt-3 rounded-lg bg-danger/10 px-4 py-2.5 text-sm text-danger">{liveError}</p>
-            )}
-          </div>
-        </section>
-
-        {/* filmstrip */}
-        <section className="pb-9 pt-5 sm:pb-12 sm:pt-6">
-          <div className="filmstrip -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
-            <button
-              onClick={() => inputRef.current?.click()}
-              className="flex h-20 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-primary/40 bg-white/60 text-primary transition-colors hover:border-primary hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-            >
-              <span className="text-xl leading-none">+</span>
-              <span className="font-mono text-[9px] uppercase tracking-widest">your mail</span>
-            </button>
-            {samples.map((s) => {
-              const r = byId.get(s.id);
-              const route = r ? routeExtraction(r.extraction as Extraction).route : null;
-              const active = selected === s.id && !livePreview;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => play(s.id)}
-                  title={s.label}
-                  className={`group relative h-20 w-24 shrink-0 overflow-hidden rounded-xl border bg-white transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${
-                    active ? "border-primary shadow-md ring-1 ring-primary" : "border-ink/10 hover:shadow-md"
-                  }`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.file} alt={s.label} loading="lazy" className="h-full w-full object-cover object-center" />
-                  {route === "review" && (
-                    <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-500" title="needs review" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
+        {/* Stage */}
+        <div ref={stageRef} className="scroll-mt-16">
+          <Stage
+            image={stageImage}
+            label={stageLabel}
+            extraction={stageExtraction}
+            phase={phase}
+            meta={stageMeta}
+            live={!!liveResult}
           />
-        </section>
+          {liveError && (
+            <p
+              className="mt-3 rounded-lg px-4 py-2.5 font-mono text-[11px]"
+              style={{ background: "rgba(214,56,44,0.12)", color: "var(--postal-red)" }}
+            >
+              {liveError}
+            </p>
+          )}
+        </div>
+      </section>
 
-        {/* review queue */}
-        <section id="review" className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
-          <div className="mb-5 flex items-baseline justify-between">
-            <h2 className="text-lg font-bold tracking-tight">Review queue</h2>
-            <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
-              under {Math.round(CONFIDENCE_THRESHOLD * 100)}% confidence, or high-stakes
-            </span>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {reviewItems.map((s, i) => {
-              const r = byId.get(s.id)!;
-              const e = r.extraction as Extraction;
-              const decided = decisions[s.id];
-              const itemCorrections = corrections[s.id] ?? [];
-              return (
-                <div key={s.id} className="tray-in paper-card flex gap-3.5 rounded-2xl p-3.5" style={{ animationDelay: `${i * 70}ms` }}>
+      {/* ═══════════════════════════════════════════════════════
+          ACT 2 — THE QUEUE (filmstrip)
+      ═══════════════════════════════════════════════════════ */}
+      <div className="mt-2">
+        <AirmailDivider />
+      </div>
+
+      <section className="mx-auto w-full max-w-5xl px-4 pb-10 pt-8 sm:px-6">
+        <div className="mb-4 flex items-baseline justify-between">
+          <h2
+            className="uppercase tracking-widest"
+            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.1rem, 4vw, 1.6rem)", color: "var(--readout-hot)" }}
+          >
+            the queue
+          </h2>
+          <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "rgba(154,163,178,0.45)" }}>
+            tap a piece to run it
+          </span>
+        </div>
+
+        {/* Horizontal filmstrip on mobile; grid on desktop */}
+        <div className="filmstrip -mx-4 flex gap-3 overflow-x-auto px-4 pb-3 sm:-mx-0 sm:px-0 md:grid md:grid-cols-6 md:overflow-visible md:gap-3">
+          {/* upload slot */}
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="filmstrip-card flex h-44 w-[58vw] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed transition-colors focus-visible:outline focus-visible:outline-2 sm:w-[160px] md:w-auto md:h-36"
+            style={{ borderColor: "rgba(36,71,201,0.45)", background: "var(--desk-2)", minWidth: 0 }}
+            aria-label="Upload your own mail"
+          >
+            <span className="text-3xl leading-none" style={{ color: "var(--postal-blue)" }}>+</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "var(--readout)" }}>your mail</span>
+            <span className="font-mono text-[8px]" style={{ color: "rgba(154,163,178,0.5)" }}>png · jpg · webp</span>
+          </button>
+
+          {samples.map((s) => {
+            const r = byId.get(s.id);
+            const route = r ? routeExtraction(r.extraction as Extraction).route : null;
+            const active = selected === s.id && !livePreview;
+            return (
+              <button
+                key={s.id}
+                onClick={() => play(s.id)}
+                title={s.label}
+                className="filmstrip-card group relative flex h-44 w-[58vw] shrink-0 flex-col overflow-hidden rounded-lg transition-all focus-visible:outline focus-visible:outline-2 sm:w-[160px] md:w-auto md:h-36"
+                style={{
+                  background: "var(--paper)",
+                  border: active
+                    ? "2px solid var(--postal-blue)"
+                    : "2px solid rgba(154,163,178,0.12)",
+                  boxShadow: active ? "0 0 0 1px var(--postal-blue)" : "0 6px 18px rgba(0,0,0,0.35)",
+                }}
+              >
+                {/* perforated top on card */}
+                <span className="absolute inset-x-0 top-0 h-2 z-10 pointer-events-none" style={{
+                  background: "radial-gradient(circle at center, var(--desk) 3px, transparent 3px) repeat-x top / 14px 8px",
+                }} aria-hidden />
+                {/* document, whole piece visible on paper */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.file} alt={s.label} loading="lazy" className="min-h-0 w-full flex-1 object-contain px-2 pt-3" />
+                {/* meta strip on paper */}
+                <span className="flex items-center justify-between gap-2 px-2 py-1.5">
+                  <span className="truncate font-mono text-[9px] lowercase tracking-wide" style={{ color: "var(--ink)" }}>
+                    {s.label}
+                  </span>
+                  {route && (
+                    <span
+                      className="shrink-0 px-1.5 py-0.5 text-[8px] uppercase tracking-widest rounded-sm"
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        background: route === "auto" ? "var(--stamp-green)" : "var(--postal-red)",
+                        color: "var(--paper)",
+                      }}
+                    >
+                      {route === "auto" ? "auto" : "review"}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+        />
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          ACT 3 — REVIEW & LEARN (correction loop)
+      ═══════════════════════════════════════════════════════ */}
+      <AirmailDivider />
+
+      <section
+        id="review"
+        className="scroll-mt-16 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14"
+      >
+        <div className="mb-6 flex items-baseline justify-between gap-4">
+          <h2
+            className="uppercase tracking-widest"
+            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.1rem, 4vw, 1.6rem)", color: "var(--readout-hot)" }}
+          >
+            review &amp; learn
+          </h2>
+          <span className="font-mono text-[10px] uppercase tracking-widest shrink-0" style={{ color: "var(--readout)" }}>
+            under {Math.round(CONFIDENCE_THRESHOLD * 100)}% confidence
+          </span>
+        </div>
+
+        {/* Queue cards on paper */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {reviewItems.map((s, i) => {
+            const r = byId.get(s.id)!;
+            const e = r.extraction as Extraction;
+            const decided = decisions[s.id];
+            const itemCorrections = corrections[s.id] ?? [];
+            return (
+              <div
+                key={s.id}
+                className="tray-in paper-card perforated-top rounded-lg overflow-hidden"
+                style={{ animationDelay: `${i * 70}ms`, paddingTop: 10 }}
+              >
+                <div className="flex gap-3.5 p-3.5">
+                  {/* thumbnail */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.file} alt={s.label} loading="lazy" className="h-20 w-24 shrink-0 rounded-lg border border-ink/5 object-cover object-center" />
+                  <img
+                    src={s.file}
+                    alt={s.label}
+                    loading="lazy"
+                    className="h-24 w-20 shrink-0 rounded object-cover object-center"
+                    style={{ border: "1px solid rgba(26,28,34,0.1)" }}
+                  />
                   <div className="min-w-0 flex-1">
+                    {/* header row */}
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate text-sm font-semibold">{s.label}</p>
-                      <span className="shrink-0 font-mono text-[10px] text-secondary">{Math.round(e.overallConfidence * 100)}%</span>
+                      <p
+                        className="truncate text-[13px] font-semibold"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        {s.label}
+                      </p>
+                      <span className="shrink-0 font-mono text-[10px]" style={{ color: "var(--readout)" }}>
+                        {Math.round(e.overallConfidence * 100)}%
+                      </span>
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-secondary">{e.summary}</p>
+                    {/* confidence bar */}
+                    <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: "rgba(26,28,34,0.1)" }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${Math.round(e.overallConfidence * 100)}%`,
+                          background: e.overallConfidence >= CONFIDENCE_THRESHOLD ? "var(--stamp-green)" : "var(--postal-red)",
+                        }}
+                      />
+                    </div>
+                    {/* threshold label */}
+                    <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest" style={{ color: "rgba(26,28,34,0.4)" }}>
+                      auto-route bar {Math.round(CONFIDENCE_THRESHOLD * 100)}%
+                    </p>
 
-                    {/* editable fields */}
-                    <div className="mt-2 space-y-1">
+                    {/* summary */}
+                    <p className="mt-1.5 font-mono text-[10px] leading-snug" style={{ color: "rgba(26,28,34,0.55)" }}>{e.summary}</p>
+
+                    {/* editable fields — tap to edit on paper, underline only */}
+                    <div className="mt-2.5 space-y-0">
                       {EDITABLE_FIELDS.map((f) => {
                         const originalValue = f.format(e);
                         const corrected = itemCorrections.find((c) => c.field === f.key);
                         const displayValue = corrected ? corrected.after : originalValue;
                         const isEditing = editingField?.sampleId === s.id && editingField?.field === f.key;
                         return (
-                          <div key={f.key} className="flex items-baseline gap-1.5">
-                            <span className="w-10 shrink-0 font-mono text-[9px] uppercase tracking-widest text-secondary">{f.label}</span>
+                          <div
+                            key={f.key}
+                            className="flex items-center gap-2"
+                            style={{ minHeight: 44, borderBottom: "1px solid rgba(26,28,34,0.06)" }}
+                          >
+                            <span
+                              className="w-10 shrink-0 font-mono text-[9px] uppercase tracking-widest"
+                              style={{ color: "rgba(26,28,34,0.4)" }}
+                            >
+                              {f.label}
+                            </span>
                             {isEditing ? (
                               <input
                                 autoFocus
@@ -454,18 +639,39 @@ export default function Page() {
                                   if (ev.key === "Enter") commitEdit(s.id, f.key, originalValue);
                                   if (ev.key === "Escape") setEditingField(null);
                                 }}
-                                className="min-w-0 flex-1 rounded border border-primary/40 bg-white px-1.5 py-0.5 font-mono text-[11px] text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="min-w-0 flex-1 bg-transparent font-mono text-[11px] focus:outline-none"
+                                style={{
+                                  color: "var(--ink)",
+                                  borderBottom: "1.5px solid var(--postal-blue)",
+                                  paddingBottom: 2,
+                                }}
                               />
                             ) : (
                               <button
                                 onClick={() => startEdit(s.id, f.key, displayValue)}
-                                className={`group/field flex min-w-0 flex-1 items-baseline gap-1 rounded px-1 py-0.5 text-left font-mono text-[11px] transition-colors hover:bg-primary/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary ${corrected ? "text-amber-700" : "text-ink/70"}`}
+                                className="group/field flex min-w-0 flex-1 items-center gap-1.5 rounded text-left focus-visible:outline focus-visible:outline-1"
+                                style={{ minHeight: 36 }}
                               >
-                                <span className="min-w-0 truncate">{displayValue}</span>
+                                <span
+                                  className="min-w-0 truncate font-mono text-[11px]"
+                                  style={{ color: corrected ? "var(--postal-blue)" : "var(--ink)", fontWeight: corrected ? 600 : 400 }}
+                                >
+                                  {displayValue}
+                                </span>
                                 {corrected ? (
-                                  <span className="corrected-pulse shrink-0 rounded border border-amber-400/60 bg-amber-50 px-1 font-mono text-[8px] uppercase tracking-widest text-amber-700">corrected</span>
+                                  <span
+                                    className="corrected-pulse shrink-0 stamp stamp-corrected text-[7px] px-1 py-0.5"
+                                    style={{ transform: "rotate(-2deg)" }}
+                                  >
+                                    corrected
+                                  </span>
                                 ) : (
-                                  <span className="shrink-0 font-mono text-[8px] text-ink/25 opacity-0 group-hover/field:opacity-100">edit</span>
+                                  <span
+                                    className="shrink-0 font-mono text-[8px] uppercase tracking-widest opacity-0 group-hover/field:opacity-100 transition-opacity"
+                                    style={{ color: "rgba(26,28,34,0.3)" }}
+                                  >
+                                    edit
+                                  </span>
                                 )}
                               </button>
                             )}
@@ -474,224 +680,318 @@ export default function Page() {
                       })}
                     </div>
 
-                    <div className="mt-2.5 flex gap-1.5">
+                    {/* approve / correct buttons */}
+                    <div className="mt-3 flex gap-2">
                       {decided ? (
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${decided === "approved" ? "bg-success/50" : "bg-amber-100 text-amber-900"}`}>
+                        <span
+                          className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded"
+                          style={{
+                            background: decided === "approved" ? "rgba(30,111,71,0.12)" : "rgba(214,56,44,0.1)",
+                            color: decided === "approved" ? "var(--stamp-green)" : "var(--postal-red)",
+                            border: `1px solid ${decided === "approved" ? "var(--stamp-green)" : "var(--postal-red)"}`,
+                          }}
+                        >
                           {decided === "approved" ? "✓ approved" : "✎ corrected"}
                         </span>
                       ) : (
                         <>
                           <button
                             onClick={() => setDecisions((d) => ({ ...d, [s.id]: "approved" }))}
-                            className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                            className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2"
+                            style={{ background: "var(--stamp-green)", color: "var(--paper)", minHeight: 36 }}
                           >
-                            Approve
+                            approve
                           </button>
                           <button
                             onClick={() => setDecisions((d) => ({ ...d, [s.id]: "corrected" }))}
-                            className="rounded-full border border-ink/15 px-2.5 py-1 text-xs font-medium transition-colors hover:bg-ink/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                            className="font-mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2"
+                            style={{ background: "rgba(26,28,34,0.08)", color: "var(--ink)", border: "1px solid rgba(26,28,34,0.15)", minHeight: 36 }}
                           >
-                            Correct
+                            correct
                           </button>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
-            {reviewItems.length === 0 && <p className="text-sm text-secondary">Queue is clear.</p>}
-          </div>
-
-          {/* correction loop CTA */}
-          {totalCorrections > 0 && (
-            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-4 sm:px-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-primary">the reviewer teaches the machine</p>
-                  <p className="mt-1 text-[13px] text-ink/70">
-                    {totalCorrections} correction{totalCorrections !== 1 ? "s" : ""} queued — re-run the remaining docs with {totalCorrections !== 1 ? "these" : "this"} as a few-shot example{totalCorrections !== 1 ? "s" : ""}.
-                  </p>
-                </div>
-                <button
-                  onClick={runReextract}
-                  disabled={rerunLoading}
-                  className="shrink-0 rounded-full bg-primary px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors hover:bg-primary-deep disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-                >
-                  {rerunLoading ? "running..." : "re-run queue with corrections"}
-                </button>
               </div>
-
-              {/* hint about canned demo */}
-              <p className="mt-2.5 font-mono text-[10px] text-secondary">
-                hint: correct the &ldquo;handwritten check&rdquo; sender field to see the canned demo — the model closes the gap on the utility bill.
-              </p>
-            </div>
+            );
+          })}
+          {reviewItems.length === 0 && (
+            <p className="font-mono text-[11px]" style={{ color: "var(--readout)" }}>queue is clear.</p>
           )}
-        </section>
+        </div>
 
-        {/* before / after delta panel */}
-        {rerunResults && (
-          <section ref={deltaRef} className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
-            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-bold tracking-tight">Before → after</h2>
-              <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
+        {/* Correction loop CTA */}
+        {totalCorrections > 0 && (
+          <div
+            className="mt-6 rounded-lg p-4 sm:p-5"
+            style={{ background: "var(--desk-2)", border: "1px solid rgba(36,71,201,0.2)" }}
+          >
+            <p
+              className="font-mono text-[10px] uppercase tracking-widest mb-1.5"
+              style={{ color: "var(--postal-blue)", fontFamily: "var(--font-display)", letterSpacing: "0.14em" }}
+            >
+              ▸ the reviewer teaches the machine
+            </p>
+            <p className="font-mono text-[12px] mb-4" style={{ color: "var(--readout-hot)" }}>
+              {totalCorrections} correction{totalCorrections !== 1 ? "s" : ""} queued
+              <span style={{ color: "var(--readout)" }}> — re-run the remaining docs with {totalCorrections !== 1 ? "these" : "this"} as few-shot example{totalCorrections !== 1 ? "s" : ""}.</span>
+            </p>
+            {/* The big CTA button */}
+            <button
+              onClick={runReextract}
+              disabled={rerunLoading}
+              className="w-full rounded-md py-4 uppercase tracking-wider transition-opacity hover:opacity-90 disabled:opacity-40 focus-visible:outline focus-visible:outline-2"
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(0.85rem, 2.5vw, 1.1rem)",
+                background: "var(--postal-red)",
+                color: "var(--paper)",
+                minHeight: 52,
+              }}
+            >
+              {rerunLoading ? "running..." : "re-run queue with corrections"}
+            </button>
+            <p className="mt-3 font-mono text-[9px]" style={{ color: "rgba(154,163,178,0.45)" }}>
+              hint: correct the &ldquo;handwritten check&rdquo; sender field to see the canned demo — the model closes the gap on the utility bill.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── FRANKING RECEIPT — delta panel ───────────────────── */}
+      {rerunResults && (
+        <>
+          <AirmailDivider />
+          <section
+            ref={deltaRef}
+            className="scroll-mt-16 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14"
+          >
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2
+                className="uppercase tracking-widest"
+                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.1rem, 4vw, 1.6rem)", color: "var(--readout-hot)" }}
+              >
+                before → after
+              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-widest" style={{ color: "rgba(154,163,178,0.4)" }}>
                 {rerunFromCache ? "canned demo · cached" : "live re-extraction"}
               </span>
             </div>
 
-            {/* headline stat changes */}
+            {/* Headline stat changes */}
             {haiku && afterAutoRate !== null && (
-              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center" style={{ animationDelay: "0ms" }}>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">auto-route rate</p>
-                  <p className="mt-1 font-mono text-xl font-semibold text-ink">{pct(haiku.autoRate)}</p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">→ {pct(afterAutoRate)}</p>
+              <div className="receipt-reveal paper-card perforated-top rounded-lg mb-5" style={{ paddingTop: 10 }}>
+                <div className="grid grid-cols-3 divide-x" style={{ borderColor: "rgba(26,28,34,0.08)" }}>
+                  {[
+                    { label: "auto-route", before: pct(haiku.autoRate), after: pct(afterAutoRate), changed: afterAutoRate !== haiku.autoRate },
+                    { label: "safe routing", before: pct(haiku.routingSafe), after: pct(haiku.routingSafe), changed: false },
+                    { label: "corrections", before: null, after: String(totalCorrections), changed: false },
+                  ].map((stat, i) => (
+                    <div
+                      key={i}
+                      className="delta-in px-3 py-4 text-center"
+                      style={{ animationDelay: `${i * 80}ms`, borderRight: i < 2 ? "1px solid rgba(26,28,34,0.08)" : undefined }}
+                    >
+                      <p className="font-mono text-[9px] uppercase tracking-widest mb-2" style={{ color: "rgba(26,28,34,0.4)" }}>
+                        {stat.label}
+                      </p>
+                      {stat.before !== null && (
+                        <p className="font-mono text-[11px] line-through" style={{ color: "rgba(26,28,34,0.35)" }}>
+                          {stat.before}
+                        </p>
+                      )}
+                      <p
+                        className="font-mono text-xl font-semibold"
+                        style={{ color: stat.changed ? "var(--stamp-green)" : "var(--ink)" }}
+                      >
+                        {stat.after}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center" style={{ animationDelay: "80ms" }}>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">safe routing</p>
-                  <p className="mt-1 font-mono text-xl font-semibold text-ink">{pct(haiku.routingSafe)}</p>
-                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">→ {pct(haiku.routingSafe)}</p>
-                </div>
-                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center sm:col-auto col-span-2" style={{ animationDelay: "160ms" }}>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">corrections applied</p>
-                  <p className="mt-1 font-mono text-xl font-semibold text-primary">{totalCorrections}</p>
-                  <p className="mt-0.5 font-mono text-[10px] text-secondary">field{totalCorrections !== 1 ? "s" : ""}</p>
-                </div>
+                {/* Tear line */}
+                <div className="receipt-tearline mx-4" />
+                <p className="px-4 pb-4 font-mono text-[10px]" style={{ color: "rgba(26,28,34,0.45)" }}>
+                  printed {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} · ref #{receiptId}
+                </p>
               </div>
             )}
 
-            {/* per-doc deltas */}
-            <div className="space-y-3">
+            {/* Per-doc delta rows — receipt style */}
+            <div
+              className="receipt-reveal paper-card perforated-top rounded-lg overflow-hidden"
+              style={{ paddingTop: 10 }}
+            >
               {rerunResults.map((r, i) => {
                 const sample = samples.find((s) => s.id === r.sampleId);
                 const priorRecord = byId.get(r.sampleId);
-                const routeBefore = priorRecord
-                  ? routeExtraction(priorRecord.extraction as Extraction).route
-                  : "review";
+                const routeBefore = priorRecord ? routeExtraction(priorRecord.extraction as Extraction).route : "review";
                 const routeAfter = routeExtraction(r.after.extraction as Extraction).route;
                 const improved = routeAfter === "auto" && routeBefore === "review";
                 const confDelta = r.after.overallConfidence - r.before.overallConfidence;
                 return (
                   <div
                     key={r.sampleId}
-                    className="delta-in paper-card rounded-2xl p-4"
-                    style={{ animationDelay: `${240 + i * 80}ms` }}
+                    className="delta-in px-4 py-3.5"
+                    style={{
+                      animationDelay: `${i * 80}ms`,
+                      borderBottom: i < rerunResults.length - 1 ? "1px dashed rgba(26,28,34,0.15)" : undefined,
+                    }}
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="font-semibold">{sample?.label ?? r.sampleId}</p>
+                      <p className="font-mono text-[12px] font-semibold" style={{ color: "var(--ink)" }}>
+                        {sample?.label ?? r.sampleId}
+                      </p>
                       {improved && (
-                        <span className="stamp-in rounded-md border-2 border-primary/70 bg-light/85 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
-                          now auto-routed
-                        </span>
+                        <span className="stamp stamp-auto stamp-in">now auto-routed</span>
                       )}
                     </div>
-                    <div className="mt-2.5 grid grid-cols-2 gap-3 font-mono text-[12px]">
+                    <div className="mt-2 grid grid-cols-2 gap-3 font-mono text-[11px]">
                       <div>
-                        <p className="mb-1 text-[9px] uppercase tracking-widest text-secondary">before</p>
-                        <p className="text-ink/60">conf {Math.round(r.before.overallConfidence * 100)}%</p>
-                        <p className="mt-0.5 text-ink/60">{routeBefore}</p>
+                        <p className="font-mono text-[8px] uppercase tracking-widest mb-1" style={{ color: "rgba(26,28,34,0.4)" }}>before</p>
+                        <p style={{ color: "rgba(26,28,34,0.5)" }}>conf {Math.round(r.before.overallConfidence * 100)}%</p>
+                        <p style={{ color: "rgba(26,28,34,0.5)" }}>{routeBefore}</p>
                       </div>
                       <div>
-                        <p className="mb-1 text-[9px] uppercase tracking-widest text-secondary">after</p>
-                        <p className={confDelta > 0 ? "text-primary" : "text-ink/70"}>
+                        <p className="font-mono text-[8px] uppercase tracking-widest mb-1" style={{ color: "rgba(26,28,34,0.4)" }}>after</p>
+                        <p style={{ color: confDelta > 0 ? "var(--stamp-green)" : "var(--ink)" }}>
                           conf {Math.round(r.after.overallConfidence * 100)}%
                           {confDelta !== 0 && (
-                            <span className="ml-1 text-[10px]">
-                              ({confDelta > 0 ? "+" : ""}{Math.round(confDelta * 100)}pt)
-                            </span>
+                            <span className="ml-1 text-[9px]">({confDelta > 0 ? "+" : ""}{Math.round(confDelta * 100)}pt)</span>
                           )}
                         </p>
-                        <p className={`mt-0.5 ${routeAfter === "auto" ? "text-primary font-semibold" : "text-ink/70"}`}>{routeAfter}</p>
+                        <p style={{ color: routeAfter === "auto" ? "var(--stamp-green)" : "var(--ink)", fontWeight: routeAfter === "auto" ? 600 : 400 }}>
+                          {routeAfter}
+                        </p>
                       </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/[0.04] px-4 py-3.5 sm:px-5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-primary">what just happened</p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80 sm:text-sm">
-                The correction told the model: on this batch, the sender field of a handwritten check is the check writer, not the drawee bank. The model applied that to the next ambiguous doc it saw, raising its confidence on the utility bill enough to clear the routing bar. One human correction, one less item in the queue.
-              </p>
+              <div className="receipt-tearline mx-4" />
+              <div className="px-4 pb-4">
+                <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5" style={{ color: "var(--postal-red)" }}>
+                  what just happened
+                </p>
+                <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(26,28,34,0.65)" }}>
+                  the correction told the model: on this batch, the sender field of a handwritten check is the check writer, not the drawee bank. the model applied that to the next ambiguous doc it saw, raising its confidence on the utility bill enough to clear the routing bar. one human correction, one less item in the queue.
+                </p>
+              </div>
             </div>
           </section>
-        )}
+        </>
+      )}
 
-        {/* eval */}
-        <section id="eval" className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
-          <div className="mb-5 flex items-baseline justify-between">
-            <h2 className="text-lg font-bold tracking-tight">The eval</h2>
-            <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
-              {haiku?.n ?? 0} labeled samples · 2 models
-            </span>
-          </div>
+      {/* ═══════════════════════════════════════════════════════
+          ACT 4 — THE EVAL (back on dark desk)
+      ═══════════════════════════════════════════════════════ */}
+      <AirmailDivider />
 
-          <div className="mb-6 grid grid-cols-3 gap-3">
-            {[
-              { big: haiku ? pct(haiku.routingSafe) : "—", small: "safe routing" },
-              { big: haiku ? `$${haiku.costPerDocUsd.toFixed(3)}` : "—", small: "per doc" },
-              { big: haiku ? `${(haiku.meanLatencyMs / 1000).toFixed(1)}s` : "—", small: "latency" },
-            ].map((s) => (
-              <div key={s.small} className="paper-card rounded-2xl px-3 py-4 text-center sm:py-5">
-                <p className="font-mono text-xl font-semibold text-primary sm:text-3xl">{s.big}</p>
-                <p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-secondary sm:text-[11px]">{s.small}</p>
-              </div>
-            ))}
-          </div>
+      <section
+        id="eval"
+        className="scroll-mt-16 mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14"
+      >
+        <div className="mb-6 flex items-baseline justify-between gap-4">
+          <h2
+            className="uppercase tracking-widest"
+            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.1rem, 4vw, 1.6rem)", color: "var(--readout-hot)" }}
+          >
+            the eval
+          </h2>
+          <span className="font-mono text-[10px] uppercase tracking-widest shrink-0" style={{ color: "rgba(154,163,178,0.45)" }}>
+            {haiku?.n ?? 0} labeled samples · 2 models
+          </span>
+        </div>
 
-          <div className="paper-card overflow-x-auto rounded-2xl">
-            <table className="w-full min-w-[560px] text-[13px]">
-              <thead>
-                <tr className="border-b border-ink/10 text-left font-mono text-[10px] uppercase tracking-widest text-secondary">
-                  <th className="px-4 py-3 font-medium">model</th>
-                  <th className="px-3 py-3 font-medium">type</th>
-                  <th className="px-3 py-3 font-medium">sender</th>
-                  <th className="px-3 py-3 font-medium">amount</th>
-                  <th className="px-3 py-3 font-medium">deadline</th>
-                  <th className="px-3 py-3 font-medium">action</th>
-                  <th className="px-3 py-3 font-medium text-primary">safe</th>
-                  <th className="px-3 py-3 font-medium">auto</th>
-                  <th className="px-3 py-3 font-medium">latency</th>
-                  <th className="px-3 py-3 font-medium">cost</th>
-                </tr>
-              </thead>
-              <tbody className="font-mono">
-                {evalStats.map((s) => (
-                  <tr key={s.model} className="border-b border-ink/5 last:border-0">
-                    <td className="px-4 py-3 font-sans font-semibold">{s.model.replace("claude-", "")}</td>
-                    <td className="px-3 py-3">{pct(s.docType)}</td>
-                    <td className="px-3 py-3">{pct(s.sender)}</td>
-                    <td className="px-3 py-3">{pct(s.amount)}</td>
-                    <td className="px-3 py-3">{pct(s.keyDate)}</td>
-                    <td className="px-3 py-3">{pct(s.action)}</td>
-                    <td className="px-3 py-3 font-semibold text-primary">{pct(s.routingSafe)}</td>
-                    <td className="px-3 py-3">{pct(s.autoRate)}</td>
-                    <td className="px-3 py-3">{(s.meanLatencyMs / 1000).toFixed(1)}s</td>
-                    <td className="px-3 py-3">${s.costPerDocUsd.toFixed(4)}</td>
-                  </tr>
+        {/* Big scoreboard numbers — on dark desk */}
+        <div className="mb-8 grid grid-cols-3 gap-4 sm:gap-6">
+          <ScoreNum big={haiku ? pct(haiku.routingSafe) : "—"} label="safe routing" accent />
+          <ScoreNum big={haiku ? `$${haiku.costPerDocUsd.toFixed(3)}` : "—"} label="per doc" />
+          <ScoreNum big={haiku ? `${(haiku.meanLatencyMs / 1000).toFixed(1)}s` : "—"} label="latency" />
+        </div>
+
+        {/* Per-field ledger on paper */}
+        <div className="paper-card perforated-top rounded-lg overflow-x-auto" style={{ paddingTop: 10 }}>
+          <table className="w-full min-w-[560px] text-[12px]">
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(26,28,34,0.1)" }}>
+                {["model", "type", "sender", "amount", "deadline", "action", "safe", "auto", "latency", "cost"].map((h) => (
+                  <th
+                    key={h}
+                    className="px-3 py-3 text-left font-mono text-[9px] uppercase tracking-widest"
+                    style={{ color: h === "safe" ? "var(--stamp-green)" : "rgba(26,28,34,0.4)" }}
+                  >
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody className="font-mono">
+              {evalStats.map((s, i) => (
+                <tr key={s.model} style={{ borderBottom: i < evalStats.length - 1 ? "1px solid rgba(26,28,34,0.05)" : undefined }}>
+                  <td className="px-3 py-3 text-[11px] font-semibold" style={{ color: "var(--ink)" }}>{s.model.replace("claude-", "")}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.docType)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.sender)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.amount)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.keyDate)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.action)}</td>
+                  <td className="px-3 py-3 font-semibold" style={{ color: "var(--stamp-green)" }}>{pct(s.routingSafe)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{pct(s.autoRate)}</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>{(s.meanLatencyMs / 1000).toFixed(1)}s</td>
+                  <td className="px-3 py-3" style={{ color: "var(--ink)" }}>${s.costPerDocUsd.toFixed(4)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="receipt-tearline mx-4" />
 
-          <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/[0.04] px-4 py-3.5 sm:px-5">
-            <p className="font-mono text-[10px] uppercase tracking-widest text-primary">what the eval changed</p>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80 sm:text-sm">
-              First pass auto-routed a wrongly-actioned utility bill at 0.88 confidence. Raising the bar to 0.90
-              traded ~20 points of automation for 100% safe routing. You only get to make that trade on purpose
-              when you measure.
+          {/* Typed-memo eval story */}
+          <div className="px-4 pb-5 pt-1">
+            <p
+              className="font-mono text-[10px] uppercase tracking-widest mb-2"
+              style={{ color: "var(--postal-red)", fontFamily: "var(--font-display)", letterSpacing: "0.14em" }}
+            >
+              ▸ what the eval changed
+            </p>
+            <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(26,28,34,0.65)" }}>
+              first pass auto-routed a wrongly-actioned utility bill at 0.88 confidence. raising the bar to 0.90 traded ~20 points of automation for 100% safe routing. you only get to make that trade on purpose when you measure.
+            </p>
+            <p
+              className="font-mono text-[10px] uppercase tracking-widest mt-5 mb-2"
+              style={{ color: "var(--postal-red)", fontFamily: "var(--font-display)", letterSpacing: "0.14em" }}
+            >
+              ▸ what the reviewer changed
+            </p>
+            <p className="font-mono text-[11px] leading-relaxed" style={{ color: "rgba(26,28,34,0.65)" }}>
+              correcting one field on a handwritten check propagated as a few-shot exemplar to the re-extraction pass. the model updated its interpretation of &ldquo;sender&rdquo; for the ambiguous utility bill and cleared the confidence bar without any prompt editing.
             </p>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="border-t border-ink/10 bg-white/60">
-        <p className="mx-auto w-full max-w-5xl px-4 py-5 text-xs leading-relaxed text-secondary sm:px-6">
-          Built by <a className="font-medium text-primary hover:underline" href="https://mikebatts.net">Mike Battaglia</a> for
-          the team at Stable — not affiliated, all mail synthetic.{" "}
-          <a className="text-primary hover:underline" href="https://github.com/mikebatts/mailroom-intelligence">Code on GitHub</a>. Next.js · TypeScript · GraphQL · Claude vision.
+      {/* ── FOOTER ───────────────────────────────────────────── */}
+      <AirmailDivider />
+      <footer style={{ background: "var(--desk-2)", borderTop: "1px solid rgba(154,163,178,0.06)" }}>
+        <p className="mx-auto w-full max-w-5xl px-4 py-5 font-mono text-[10px] uppercase tracking-widest sm:px-6" style={{ color: "rgba(154,163,178,0.4)" }}>
+          built by{" "}
+          <a
+            href="https://mikebatts.net"
+            className="transition-opacity hover:opacity-80"
+            style={{ color: "var(--readout)" }}
+          >
+            mike battaglia
+          </a>{" "}
+          for the team at stable · not affiliated · synthetic mail only ·{" "}
+          <a
+            href="https://github.com/mikebatts/mailroom-intelligence"
+            className="transition-opacity hover:opacity-80"
+            style={{ color: "var(--readout)" }}
+          >
+            github
+          </a>{" "}
+          · next.js · typescript · graphql · claude vision
         </p>
       </footer>
     </div>

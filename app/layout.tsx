@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Noto_Sans } from "next/font/google";
+import { Archivo, Archivo_Black, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const notoSans = Noto_Sans({
-  variable: "--font-noto-sans",
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
+});
+
+const archivoBlack = Archivo_Black({
+  variable: "--font-archivo-black",
+  subsets: ["latin"],
+  weight: ["400"],
 });
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
@@ -35,8 +41,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${notoSans.variable} ${plexMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col text-ink">
+    <html
+      lang="en"
+      className={`${archivo.variable} ${archivoBlack.variable} ${plexMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col" style={{ color: "var(--readout)" }}>
         {children}
         <Analytics />
       </body>
