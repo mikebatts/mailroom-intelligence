@@ -42,8 +42,39 @@ interface ModelStats {
   costPerDocUsd: number;
 }
 
+// A single field correction the reviewer made.
+interface FieldCorrection {
+  field: string;
+  label: string;
+  before: string;
+  after: string;
+}
+
+// Per-doc delta returned by /api/reextract.
+interface DeltaResult {
+  sampleId: string;
+  before: { overallConfidence: number; recommendedAction: string };
+  after: {
+    extraction: Extraction;
+    overallConfidence: number;
+    recommendedAction: string;
+    latencyMs: number;
+  };
+  fromCache: boolean;
+}
+
 const MODEL = "claude-haiku-4-5";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+// Editable fields shown in the correction tray.
+const EDITABLE_FIELDS: { key: keyof Extraction; label: string; format: (e: Extraction) => string }[] = [
+  { key: "sender", label: "from", format: (e) => e.sender.value ?? "—" },
+  { key: "recipient", label: "to", format: (e) => e.recipient.value ?? "—" },
+  { key: "docType", label: "type", format: (e) => e.docType.value ?? "—" },
+  { key: "amount", label: "amount", format: (e) => e.amount.value !== null ? `$${e.amount.value.toFixed(2)}` : "—" },
+  { key: "keyDate", label: "due", format: (e) => e.keyDate.value ?? "—" },
+  { key: "urgency", label: "urgency", format: (e) => e.urgency.value ?? "—" },
+];
 
 export default function Page() {
   const [samples, setSamples] = useState<MailSample[]>([]);
@@ -56,6 +87,16 @@ export default function Page() {
   const [livePreview, setLivePreview] = useState<string | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  // Correction loop state
+  const [corrections, setCorrections] = useState<Record<string, FieldCorrection[]>>({});
+  const [editingField, setEditingField] = useState<{ sampleId: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [rerunLoading, setRerunLoading] = useState(false);
+  const [rerunResults, setRerunResults] = useState<DeltaResult[] | null>(null);
+  const [rerunFromCache, setRerunFromCache] = useState(false);
+  const deltaRef = useRef<HTMLDivElement>(null);
+
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -138,6 +179,74 @@ export default function Page() {
     }
   }
 
+  function startEdit(sampleId: string, field: string, currentValue: string) {
+    setEditingField({ sampleId, field });
+    setEditValue(currentValue === "—" ? "" : currentValue);
+  }
+
+  function commitEdit(sampleId: string, field: string, originalValue: string) {
+    if (!editValue.trim() || editValue.trim() === originalValue) {
+      setEditingField(null);
+      return;
+    }
+    const label = EDITABLE_FIELDS.find((f) => f.key === field)?.label ?? field;
+    setCorrections((prev) => {
+      const existing = (prev[sampleId] ?? []).filter((c) => c.field !== field);
+      return {
+        ...prev,
+        [sampleId]: [
+          ...existing,
+          { field, label, before: originalValue, after: editValue.trim() },
+        ],
+      };
+    });
+    setEditingField(null);
+    // If a correction is made, mark the tray item as corrected.
+    setDecisions((d) => ({ ...d, [sampleId]: "corrected" }));
+    // Clear prior rerun results so the button is re-enabled.
+    setRerunResults(null);
+  }
+
+  const totalCorrections = Object.values(corrections).reduce((n, arr) => n + arr.length, 0);
+
+  async function runReextract() {
+    setRerunLoading(true);
+    setRerunResults(null);
+    try {
+      // Build exemplars from all corrections.
+      const exemplars = Object.entries(corrections).flatMap(([sampleId, corrs]) => {
+        const sample = samples.find((s) => s.id === sampleId);
+        return corrs.map((c) => ({
+          sampleLabel: sample?.label ?? sampleId,
+          field: c.field,
+          before: c.before,
+          after: c.after,
+        }));
+      });
+      // Re-run on the review items that were not the ones being corrected.
+      const correctedIds = new Set(Object.keys(corrections));
+      const rerunIds = reviewItems
+        .map((s) => s.id)
+        .filter((id) => !correctedIds.has(id));
+
+      const res = await fetch("/api/reextract", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sampleIds: rerunIds, exemplars }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      setRerunResults(data.results);
+      setRerunFromCache(!!data.fromCache);
+      // Scroll to delta panel.
+      setTimeout(() => deltaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    } catch (err) {
+      setLiveError((err as Error).message);
+    } finally {
+      setRerunLoading(false);
+    }
+  }
+
   const current = selected ? byId.get(selected) : undefined;
   const currentSample = samples.find((s) => s.id === selected);
   const stageExtraction = liveResult?.extraction ?? (current?.extraction as Extraction | undefined) ?? null;
@@ -155,6 +264,22 @@ export default function Page() {
   });
 
   const haiku = evalStats.find((s) => s.model === MODEL);
+
+  // Compute updated stats after re-run.
+  const afterAutoRate = useMemo(() => {
+    if (!rerunResults || !haiku) return null;
+    // Start from original auto-routed count.
+    const originalAutoCount = Math.round(haiku.autoRate * haiku.n);
+    // Count docs that moved review → auto after re-extraction.
+    const reviewIds = new Set(reviewItems.map((s) => s.id));
+    let delta = 0;
+    for (const r of rerunResults) {
+      const wasReview = reviewIds.has(r.sampleId);
+      const isNowAuto = routeExtraction(r.after.extraction as Extraction).route === "auto";
+      if (wasReview && isNowAuto) delta++;
+    }
+    return (originalAutoCount + delta) / haiku.n;
+  }, [rerunResults, haiku, reviewItems]);
 
   return (
     <div
@@ -214,6 +339,17 @@ export default function Page() {
           <p className="mt-1.5 text-[13px] text-secondary sm:text-[15px]">
             AI triage for physical mail: reads every piece, routes the confident calls, flags the rest for a human.
           </p>
+
+          {/* pipeline steps narrative */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] uppercase tracking-widest text-secondary sm:mt-5">
+            {(["scan", "extract", "route", "learn"] as const).map((step, i) => (
+              <span key={step} className="flex items-center gap-2">
+                {i > 0 && <span className="text-ink/20">→</span>}
+                <span className={step === "learn" ? "text-primary font-semibold" : ""}>{step}</span>
+              </span>
+            ))}
+          </div>
+
           <div ref={stageRef} className="mt-5 scroll-mt-16 sm:mt-7">
             <Stage
               image={stageImage}
@@ -286,6 +422,7 @@ export default function Page() {
               const r = byId.get(s.id)!;
               const e = r.extraction as Extraction;
               const decided = decisions[s.id];
+              const itemCorrections = corrections[s.id] ?? [];
               return (
                 <div key={s.id} className="tray-in paper-card flex gap-3.5 rounded-2xl p-3.5" style={{ animationDelay: `${i * 70}ms` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -296,7 +433,48 @@ export default function Page() {
                       <span className="shrink-0 font-mono text-[10px] text-secondary">{Math.round(e.overallConfidence * 100)}%</span>
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-secondary">{e.summary}</p>
-                    <div className="mt-2 flex gap-1.5">
+
+                    {/* editable fields */}
+                    <div className="mt-2 space-y-1">
+                      {EDITABLE_FIELDS.map((f) => {
+                        const originalValue = f.format(e);
+                        const corrected = itemCorrections.find((c) => c.field === f.key);
+                        const displayValue = corrected ? corrected.after : originalValue;
+                        const isEditing = editingField?.sampleId === s.id && editingField?.field === f.key;
+                        return (
+                          <div key={f.key} className="flex items-baseline gap-1.5">
+                            <span className="w-10 shrink-0 font-mono text-[9px] uppercase tracking-widest text-secondary">{f.label}</span>
+                            {isEditing ? (
+                              <input
+                                autoFocus
+                                value={editValue}
+                                onChange={(ev) => setEditValue(ev.target.value)}
+                                onBlur={() => commitEdit(s.id, f.key, originalValue)}
+                                onKeyDown={(ev) => {
+                                  if (ev.key === "Enter") commitEdit(s.id, f.key, originalValue);
+                                  if (ev.key === "Escape") setEditingField(null);
+                                }}
+                                className="min-w-0 flex-1 rounded border border-primary/40 bg-white px-1.5 py-0.5 font-mono text-[11px] text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => startEdit(s.id, f.key, displayValue)}
+                                className={`group/field flex min-w-0 flex-1 items-baseline gap-1 rounded px-1 py-0.5 text-left font-mono text-[11px] transition-colors hover:bg-primary/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary ${corrected ? "text-amber-700" : "text-ink/70"}`}
+                              >
+                                <span className="min-w-0 truncate">{displayValue}</span>
+                                {corrected ? (
+                                  <span className="corrected-pulse shrink-0 rounded border border-amber-400/60 bg-amber-50 px-1 font-mono text-[8px] uppercase tracking-widest text-amber-700">corrected</span>
+                                ) : (
+                                  <span className="shrink-0 font-mono text-[8px] text-ink/25 opacity-0 group-hover/field:opacity-100">edit</span>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-2.5 flex gap-1.5">
                       {decided ? (
                         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${decided === "approved" ? "bg-success/50" : "bg-amber-100 text-amber-900"}`}>
                           {decided === "approved" ? "✓ approved" : "✎ corrected"}
@@ -324,7 +502,122 @@ export default function Page() {
             })}
             {reviewItems.length === 0 && <p className="text-sm text-secondary">Queue is clear.</p>}
           </div>
+
+          {/* correction loop CTA */}
+          {totalCorrections > 0 && (
+            <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-primary">the reviewer teaches the machine</p>
+                  <p className="mt-1 text-[13px] text-ink/70">
+                    {totalCorrections} correction{totalCorrections !== 1 ? "s" : ""} queued — re-run the remaining docs with {totalCorrections !== 1 ? "these" : "this"} as a few-shot example{totalCorrections !== 1 ? "s" : ""}.
+                  </p>
+                </div>
+                <button
+                  onClick={runReextract}
+                  disabled={rerunLoading}
+                  className="shrink-0 rounded-full bg-primary px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-white transition-colors hover:bg-primary-deep disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  {rerunLoading ? "running..." : "re-run queue with corrections"}
+                </button>
+              </div>
+
+              {/* hint about canned demo */}
+              <p className="mt-2.5 font-mono text-[10px] text-secondary">
+                hint: correct the &ldquo;handwritten check&rdquo; sender field to see the canned demo — the model closes the gap on the utility bill.
+              </p>
+            </div>
+          )}
         </section>
+
+        {/* before / after delta panel */}
+        {rerunResults && (
+          <section ref={deltaRef} className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-bold tracking-tight">Before → after</h2>
+              <span className="font-mono text-[11px] uppercase tracking-widest text-secondary">
+                {rerunFromCache ? "canned demo · cached" : "live re-extraction"}
+              </span>
+            </div>
+
+            {/* headline stat changes */}
+            {haiku && afterAutoRate !== null && (
+              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center" style={{ animationDelay: "0ms" }}>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">auto-route rate</p>
+                  <p className="mt-1 font-mono text-xl font-semibold text-ink">{pct(haiku.autoRate)}</p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">→ {pct(afterAutoRate)}</p>
+                </div>
+                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center" style={{ animationDelay: "80ms" }}>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">safe routing</p>
+                  <p className="mt-1 font-mono text-xl font-semibold text-ink">{pct(haiku.routingSafe)}</p>
+                  <p className="mt-0.5 font-mono text-sm font-semibold text-primary">→ {pct(haiku.routingSafe)}</p>
+                </div>
+                <div className="delta-in paper-card rounded-2xl px-3 py-4 text-center sm:col-auto col-span-2" style={{ animationDelay: "160ms" }}>
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-secondary">corrections applied</p>
+                  <p className="mt-1 font-mono text-xl font-semibold text-primary">{totalCorrections}</p>
+                  <p className="mt-0.5 font-mono text-[10px] text-secondary">field{totalCorrections !== 1 ? "s" : ""}</p>
+                </div>
+              </div>
+            )}
+
+            {/* per-doc deltas */}
+            <div className="space-y-3">
+              {rerunResults.map((r, i) => {
+                const sample = samples.find((s) => s.id === r.sampleId);
+                const priorRecord = byId.get(r.sampleId);
+                const routeBefore = priorRecord
+                  ? routeExtraction(priorRecord.extraction as Extraction).route
+                  : "review";
+                const routeAfter = routeExtraction(r.after.extraction as Extraction).route;
+                const improved = routeAfter === "auto" && routeBefore === "review";
+                const confDelta = r.after.overallConfidence - r.before.overallConfidence;
+                return (
+                  <div
+                    key={r.sampleId}
+                    className="delta-in paper-card rounded-2xl p-4"
+                    style={{ animationDelay: `${240 + i * 80}ms` }}
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="font-semibold">{sample?.label ?? r.sampleId}</p>
+                      {improved && (
+                        <span className="stamp-in rounded-md border-2 border-primary/70 bg-light/85 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-primary">
+                          now auto-routed
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-2 gap-3 font-mono text-[12px]">
+                      <div>
+                        <p className="mb-1 text-[9px] uppercase tracking-widest text-secondary">before</p>
+                        <p className="text-ink/60">conf {Math.round(r.before.overallConfidence * 100)}%</p>
+                        <p className="mt-0.5 text-ink/60">{routeBefore}</p>
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[9px] uppercase tracking-widest text-secondary">after</p>
+                        <p className={confDelta > 0 ? "text-primary" : "text-ink/70"}>
+                          conf {Math.round(r.after.overallConfidence * 100)}%
+                          {confDelta !== 0 && (
+                            <span className="ml-1 text-[10px]">
+                              ({confDelta > 0 ? "+" : ""}{Math.round(confDelta * 100)}pt)
+                            </span>
+                          )}
+                        </p>
+                        <p className={`mt-0.5 ${routeAfter === "auto" ? "text-primary font-semibold" : "text-ink/70"}`}>{routeAfter}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-primary/15 bg-primary/[0.04] px-4 py-3.5 sm:px-5">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-primary">what just happened</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-ink/80 sm:text-sm">
+                The correction told the model: on this batch, the sender field of a handwritten check is the check writer, not the drawee bank. The model applied that to the next ambiguous doc it saw, raising its confidence on the utility bill enough to clear the routing bar. One human correction, one less item in the queue.
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* eval */}
         <section id="eval" className="scroll-mt-16 border-t border-ink/10 py-9 sm:py-12">

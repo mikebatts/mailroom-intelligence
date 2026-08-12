@@ -54,14 +54,33 @@ export function parseExtraction(text: string): Extraction {
   return { ...e, overallConfidence: computeOverall(e) };
 }
 
+export interface CorrectionExemplar {
+  sampleLabel: string;
+  field: string;
+  before: string;
+  after: string;
+}
+
+function buildFewShotBlock(exemplars: CorrectionExemplar[]): string {
+  if (!exemplars.length) return "";
+  const lines = exemplars.map(
+    (ex) => `  • ${ex.sampleLabel} — field "${ex.field}": model read "${ex.before}", reviewer corrected to "${ex.after}"`
+  );
+  return `\n\nA human reviewer corrected the following extraction errors on earlier documents in this batch. Learn from these corrections when interpreting ambiguous or low-confidence fields:\n${lines.join("\n")}`;
+}
+
 export async function extractFromImage(
   imageBase64: string,
   mediaType: string,
-  model: string
+  model: string,
+  exemplars: CorrectionExemplar[] = []
 ): Promise<RawResult> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   const started = Date.now();
+
+  const fewShotBlock = buildFewShotBlock(exemplars);
+  const promptWithExemplars = EXTRACTION_PROMPT + fewShotBlock;
 
   if (anthropicKey) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -79,7 +98,7 @@ export async function extractFromImage(
             role: "user",
             content: [
               { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-              { type: "text", text: EXTRACTION_PROMPT },
+              { type: "text", text: promptWithExemplars },
             ],
           },
         ],
@@ -110,7 +129,7 @@ export async function extractFromImage(
             role: "user",
             content: [
               { type: "image_url", image_url: { url: `data:${mediaType};base64,${imageBase64}` } },
-              { type: "text", text: EXTRACTION_PROMPT },
+              { type: "text", text: promptWithExemplars },
             ],
           },
         ],
