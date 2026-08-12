@@ -23,104 +23,119 @@ const DOC_LABEL: Record<string, string> = {
   other: "Other",
 };
 
-/* Postmark ornament — circular SVG */
-function Postmark({ size = 52, className = "" }: { size?: number; className?: string }) {
-  const r = size / 2;
-  const outerR = r - 2;
-  const innerR = r - 7;
-  const today = new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }).toUpperCase();
-  const text = `MAILROOM INTELLIGENCE • NYC • ${today}`;
+/* ── Micro confidence bar ────────────────────────────────────── */
+function MicroBar({ value, delay }: { value: number; delay: number }) {
+  const isHigh = value >= CONFIDENCE_THRESHOLD;
+  const color = isHigh ? "var(--accent)" : "var(--orange)";
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      aria-hidden
-      className={className}
-      style={{ opacity: 0.55 }}
-    >
-      <circle cx={r} cy={r} r={outerR} fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx={r} cy={r} r={innerR} fill="none" stroke="currentColor" strokeWidth="1" />
-      <path id={`arc-${size}`} d={`M ${r - innerR + 1},${r} a${innerR - 1},${innerR - 1} 0 0 1 ${(innerR - 1) * 2},0`} fill="none" />
-      <text fontSize="5.5" fontFamily="var(--font-plex-mono, monospace)" fill="currentColor" letterSpacing="0.8">
-        <textPath href={`#arc-${size}`} startOffset="50%" textAnchor="middle">
-          {text}
-        </textPath>
-      </text>
-      {/* center cross lines */}
-      <line x1={r - 6} y1={r} x2={r + 6} y2={r} stroke="currentColor" strokeWidth="1" />
-      <line x1={r} y1={r - 6} x2={r} y2={r + 6} stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-function Bar({ value, delay }: { value: number; delay: number }) {
-  const pct = Math.round(value * 100);
-  const belowThreshold = value < CONFIDENCE_THRESHOLD;
-  const tone = value >= CONFIDENCE_THRESHOLD
-    ? "bg-stamp-green"
-    : value >= 0.75
-      ? "bg-amber-500"
-      : "bg-postal-red";
-  return (
-    <span className="flex items-center gap-1.5">
-      {/* threshold dashed rule at CONFIDENCE_THRESHOLD position */}
-      <span className="relative h-1.5 w-14 overflow-visible rounded-full" style={{ background: "rgba(26,28,34,0.12)" }}>
-        <span
-          className={`bar-fill block h-full rounded-full ${tone}`}
-          style={{ width: `${pct}%`, animationDelay: `${delay}ms` }}
-        />
-        {/* threshold marker at 90% */}
-        {belowThreshold && (
-          <span
-            className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-postal-red/70"
-            style={{ left: `${CONFIDENCE_THRESHOLD * 100}%`, opacity: 0.7 }}
-            title={`auto-route bar ${Math.round(CONFIDENCE_THRESHOLD * 100)}%`}
-          />
-        )}
+    <span className="flex flex-col items-end gap-0.5">
+      <span
+        style={{
+          fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+          fontSize: 11,
+          color: "var(--text-secondary)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {Math.round(value * 100)}%
       </span>
-      <span className="w-6 text-right font-mono text-[10px]" style={{ color: "var(--readout)" }}>{pct}</span>
+      <span
+        className="relative h-[3px] rounded-full overflow-hidden"
+        style={{ width: 40, background: "rgba(0,0,0,0.07)" }}
+      >
+        <span
+          className="bar-fill absolute left-0 top-0 h-full rounded-full"
+          style={{
+            width: `${Math.round(value * 100)}%`,
+            background: color,
+            animationDelay: `${delay}ms`,
+          }}
+        />
+      </span>
     </span>
   );
 }
 
-function ReadoutRow({
+/* ── Grouped-inset row (iOS Settings style) ──────────────────── */
+function ExtractRow({
   label,
   value,
   confidence,
   delay,
   hot,
+  isFirst,
+  isLast,
 }: {
   label: string;
   value: string;
   confidence?: number;
   delay: number;
   hot?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   return (
     <div
-      className="row-in flex items-baseline justify-between gap-3 py-2"
+      className="row-in flex items-center justify-between gap-3 px-4"
       style={{
         animationDelay: `${delay}ms`,
-        borderBottom: "1px solid rgba(26,28,34,0.08)",
+        minHeight: 48,
+        borderBottom: isLast ? "none" : "1px solid var(--hairline)",
+        borderRadius: isFirst && isLast ? 12 : isFirst ? "12px 12px 0 0" : isLast ? "0 0 12px 12px" : 0,
       }}
     >
       <span
-        className="shrink-0 font-mono text-[9px] uppercase tracking-widest"
-        style={{ color: "var(--readout)" }}
+        style={{
+          fontSize: 13,
+          color: "var(--text-secondary)",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
       >
         {label}
       </span>
-      <span className="flex min-w-0 items-baseline gap-2.5">
+      <span className="flex items-center gap-3 min-w-0">
         <span
-          className="min-w-0 truncate text-right font-mono text-[12px] font-medium"
-          style={{ color: hot ? "var(--postal-red)" : "var(--ink)" }}
+          className="break-words text-right"
+          style={{
+            fontSize: 15,
+            fontWeight: 500,
+            lineHeight: 1.3,
+            color: hot ? "var(--red)" : "var(--text-primary)",
+          }}
         >
           {value}
         </span>
-        {confidence !== undefined && <Bar value={confidence} delay={delay + 150} />}
+        {confidence !== undefined && <MicroBar value={confidence} delay={delay + 120} />}
       </span>
     </div>
+  );
+}
+
+/* ── Route decision pill ─────────────────────────────────────── */
+function RoutePill({ route }: { route: "auto" | "review" }) {
+  const isAuto = route === "auto";
+  return (
+    <span
+      className="pill-spring inline-flex items-center gap-1.5 rounded-full px-3 py-1"
+      style={{
+        background: isAuto ? "var(--green-bg)" : "var(--orange-bg)",
+        color: isAuto ? "var(--green-text)" : "var(--orange-text)",
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      <span
+        className="inline-block rounded-full"
+        style={{
+          width: 7,
+          height: 7,
+          background: isAuto ? "var(--green)" : "var(--orange)",
+          flexShrink: 0,
+        }}
+      />
+      {isAuto ? "auto-routed" : "needs review"}
+    </span>
   );
 }
 
@@ -140,181 +155,195 @@ export default function Stage({
   live?: boolean;
 }) {
   const showReadout = phase === "extract" || phase === "route" || phase === "done";
-  const showStamp = phase === "route" || phase === "done";
+  const showRoute = phase === "route" || phase === "done";
   const route = extraction ? routeExtraction(extraction) : null;
-  const stepLabel =
-    phase === "scan" ? "scanning" : phase === "extract" ? "extracting" : phase === "route" ? "routing" : "";
 
-  const steps: { id: Phase; name: string }[] = [
-    { id: "scan", name: "scan" },
-    { id: "extract", name: "extract" },
-    { id: "route", name: "route" },
+  const steps: { id: Phase; label: string }[] = [
+    { id: "scan", label: "read" },
+    { id: "extract", label: "decide" },
+    { id: "route", label: "route" },
   ];
+  const stepOrder: Phase[] = ["scan", "extract", "route", "done"];
   const stepState = (id: Phase) => {
-    const order: Phase[] = ["scan", "extract", "route", "done"];
-    const cur = order.indexOf(phase);
-    const mine = order.indexOf(id);
+    const cur = stepOrder.indexOf(phase);
+    const mine = stepOrder.indexOf(id);
     if (phase === "idle") return "todo";
     if (mine < cur || phase === "done") return "done";
     if (mine === cur) return "active";
     return "todo";
   };
 
+  /* build ordered rows from extraction */
+  const rows = extraction
+    ? [
+        { label: "type", value: DOC_LABEL[extraction.docType.value ?? "other"] ?? "other", conf: extraction.docType.confidence, delay: 0 },
+        { label: "from", value: extraction.sender.value ?? "—", conf: extraction.sender.confidence, delay: 80 },
+        { label: "to", value: extraction.recipient.value ?? "—", conf: extraction.recipient.confidence, delay: 160 },
+        ...(extraction.amount.value !== null
+          ? [{ label: "amount", value: `$${extraction.amount.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, conf: extraction.amount.confidence, delay: 240 }]
+          : []),
+        ...(extraction.keyDate.value !== null
+          ? [{ label: "due", value: extraction.keyDate.value, conf: extraction.keyDate.confidence, delay: 320 }]
+          : []),
+        { label: "urgency", value: extraction.urgency.value ?? "low", conf: extraction.urgency.confidence, delay: 400, hot: extraction.urgency.value === "high" },
+      ]
+    : [];
+
   return (
-    <div className="grid gap-5 md:grid-cols-[1.15fr_1fr] md:gap-8">
-      {/* THE PIECE OF MAIL — angled on desk */}
+    <div className="grid gap-5 md:grid-cols-[1.1fr_1fr] md:gap-8">
+      {/* ── MAIL IMAGE ─────────────────────────────────────── */}
       <div className="relative min-w-0">
-        {/* Postmark corner ornament */}
-        <Postmark
-          size={56}
-          className="absolute -top-4 -right-2 z-10 text-readout pointer-events-none hidden md:block"
-        />
         <div
-          className="paper-card hero-doc perforated-top relative overflow-hidden rounded-lg"
-          style={{ paddingTop: 10 }}
+          className="glass relative overflow-hidden"
+          style={{ borderRadius: 28, minHeight: 240 }}
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={image}
               alt={label}
-              className="max-h-[30vh] w-full object-contain sm:max-h-[420px]"
+              className="max-h-[32vh] w-full object-contain sm:max-h-[440px]"
+              style={{ padding: "12px 12px 8px" }}
             />
           ) : (
             <div
-              className="flex h-64 items-center justify-center font-mono text-[11px] uppercase tracking-widest"
-              style={{ color: "var(--readout)" }}
+              className="flex h-60 items-center justify-center"
+              style={{ color: "var(--text-tertiary)", fontSize: 14 }}
             >
-              pick a piece of mail below
+              select a piece of mail below
             </div>
           )}
           {phase === "scan" && <div className="scan-beam" />}
 
-          {/* ROUTE STAMP */}
-          {showStamp && route && (
-            <div
-              className={`stamp stamp-in absolute right-3 top-5 sm:right-5 sm:top-6 ${
-                route.route === "auto" ? "stamp-auto" : "stamp-review"
-              }`}
-            >
-              {route.route === "auto" ? "auto-routed" : "human review"}
+          {/* Route pill overlay */}
+          {showRoute && route && (
+            <div className="absolute right-4 top-4">
+              <RoutePill route={route.route} />
             </div>
           )}
         </div>
+
+        {/* Caption */}
         <p
-          className="mt-2 text-center font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--readout)" }}
+          className="mt-2 text-center"
+          style={{ fontSize: 12, color: "var(--text-secondary)" }}
         >
-          {label}
-          {live && " · live extraction"}
+          {label}{live && " · live"}
         </p>
       </div>
 
-      {/* THE MACHINE READOUT */}
-      <div className="flex min-w-0 flex-col justify-center">
-        {/* step dots */}
-        <div className="mb-4 flex items-center gap-2" aria-label="Pipeline progress">
-          {steps.map((s, i) => {
+      {/* ── READOUT PANEL ──────────────────────────────────── */}
+      <div className="flex min-w-0 flex-col justify-center gap-4">
+        {/* Segmented step indicator */}
+        <div
+          className="glass-sm inline-flex items-center self-start"
+          style={{ borderRadius: 12, padding: "4px 6px", gap: 4 }}
+          aria-label="Pipeline progress"
+        >
+          {steps.map((s) => {
             const st = stepState(s.id);
+            const isActive = st === "active";
             return (
-              <span key={s.id} className="flex items-center gap-2">
-                {i > 0 && <span className="h-px w-4 sm:w-6" style={{ background: "rgba(154,163,178,0.2)" }} />}
-                <span
-                  className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest transition-colors"
-                  style={{
-                    color: st === "active"
-                      ? "var(--postal-blue)"
-                      : st === "done"
-                        ? "var(--readout-hot)"
-                        : "rgba(154,163,178,0.35)",
-                  }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full transition-colors"
-                    style={{
-                      background: st === "active"
-                        ? "var(--postal-blue)"
-                        : st === "done"
-                          ? "var(--readout)"
-                          : "rgba(154,163,178,0.2)",
-                    }}
-                  />
-                  {s.name}
-                </span>
+              <span
+                key={s.id}
+                style={{
+                  borderRadius: 8,
+                  padding: "4px 10px",
+                  fontSize: 12,
+                  fontWeight: isActive || st === "done" ? 600 : 400,
+                  color: isActive ? "var(--text-primary)" : st === "done" ? "var(--accent)" : "var(--text-tertiary)",
+                  background: isActive ? "rgba(255,255,255,0.9)" : "transparent",
+                  boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.25s cubic-bezier(0.32,0.72,0,1)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {s.label}
               </span>
             );
           })}
         </div>
 
-        {phase === "idle" && !extraction && (
-          <p className="font-mono text-[12px] leading-relaxed" style={{ color: "var(--readout)" }}>
-            every piece of mail below runs through the same pipeline. watch it work, or drop in your own.
+        {/* Idle / scanning state */}
+        {(phase === "idle" || (phase === "scan" && !extraction)) && (
+          <p
+            className={phase === "scan" ? "processing-caret" : ""}
+            style={{ fontSize: 15, color: "var(--text-secondary)", lineHeight: 1.5 }}
+          >
+            {phase === "idle"
+              ? "every piece of mail below runs through the same pipeline. watch it work, or drop in your own."
+              : "scanning"}
           </p>
         )}
 
-        {(phase === "scan" || (phase === "extract" && !extraction)) && (
-          <p className="processing-caret font-mono text-[12px]" style={{ color: "var(--readout)" }}>
-            {stepLabel}
-          </p>
-        )}
-
-        {showReadout && extraction && (
-          <div className="paper-card perforated-top rounded-lg px-4 py-1.5 sm:px-5" style={{ paddingTop: "calc(0.375rem + 10px)" }}>
-            <ReadoutRow label="type" value={DOC_LABEL[extraction.docType.value ?? "other"]} confidence={extraction.docType.confidence} delay={0} />
-            <ReadoutRow label="from" value={extraction.sender.value ?? "—"} confidence={extraction.sender.confidence} delay={110} />
-            <ReadoutRow label="to" value={extraction.recipient.value ?? "—"} confidence={extraction.recipient.confidence} delay={220} />
-            {extraction.amount.value !== null && (
-              <ReadoutRow
-                label="amount"
-                value={`$${extraction.amount.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                confidence={extraction.amount.confidence}
-                delay={330}
+        {/* Extracted fields — grouped inset card */}
+        {showReadout && extraction && rows.length > 0 && (
+          <div
+            className="glass-sm overflow-hidden"
+            style={{ borderRadius: 16 }}
+          >
+            {rows.map((row, i) => (
+              <ExtractRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+                confidence={row.conf}
+                delay={row.delay}
+                hot={row.hot}
+                isFirst={i === 0}
+                isLast={i === rows.length - 1}
               />
-            )}
-            {extraction.keyDate.value !== null && (
-              <ReadoutRow label="due" value={extraction.keyDate.value} confidence={extraction.keyDate.confidence} delay={440} />
-            )}
-            <ReadoutRow
-              label="urgency"
-              value={extraction.urgency.value ?? "low"}
-              confidence={extraction.urgency.confidence}
-              delay={550}
-              hot={extraction.urgency.value === "high"}
-            />
+            ))}
           </div>
         )}
 
-        {showStamp && extraction && route && (
-          <div className="row-in mt-4 flex flex-wrap items-center gap-2" style={{ animationDelay: "60ms" }}>
+        {/* Action + route reason */}
+        {showRoute && extraction && route && (
+          <div className="row-in flex flex-wrap items-center gap-2" style={{ animationDelay: "80ms" }}>
             <span
-              className="font-mono text-[11px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1"
               style={{
-                background: "var(--postal-blue)",
-                color: "var(--paper)",
-                fontFamily: "var(--font-display)",
+                background: "var(--accent)",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
-              → {ACTION_LABEL[extraction.recommendedAction]}
+              {ACTION_LABEL[extraction.recommendedAction]}
             </span>
-            <span className="font-mono text-[10px]" style={{ color: "var(--readout)" }}>{route.reason}</span>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{route.reason}</span>
           </div>
         )}
 
+        {/* Summary */}
         {phase === "done" && extraction && (
           <p
-            className="row-in mt-3 font-mono text-[11px] leading-relaxed"
-            style={{ animationDelay: "120ms", color: "var(--readout)" }}
+            className="row-in"
+            style={{ animationDelay: "120ms", fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.6 }}
           >
             {extraction.summary}
           </p>
         )}
 
+        {/* Model meta */}
         {phase === "done" && meta && (
           <p
-            className="row-in mt-3 font-mono text-[10px]"
-            style={{ animationDelay: "200ms", color: "rgba(154,163,178,0.55)" }}
+            className="row-in"
+            style={{
+              animationDelay: "200ms",
+              fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+              fontSize: 12,
+              color: "var(--text-tertiary)",
+            }}
           >
             {meta.model} · {(meta.latencyMs / 1000).toFixed(1)}s · ${meta.costUsd.toFixed(4)}
+          </p>
+        )}
+
+        {/* Threshold footnote — only once, small */}
+        {showReadout && (
+          <p style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
+            auto-routes at {Math.round(CONFIDENCE_THRESHOLD * 100)}% overall confidence
           </p>
         )}
       </div>
